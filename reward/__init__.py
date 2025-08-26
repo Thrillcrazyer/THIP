@@ -1,1 +1,1 @@
-from .reward_func import reward_4_process_func
+from .reward_func import process_reward_func

@@ -1,6 +1,8 @@
 *.csv
 *.ipynb
 log.txt
+dpo_out/
+wandb/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

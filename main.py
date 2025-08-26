@@ -1,13 +1,22 @@
-import reward
 import pandas as pd
-import transformers
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+from reward import process_reward_func
+from utils import get_response
 
 
-def main():
-    eventagent=reward.Answer2EventAgent()
-    deepmath=pd.read_csv('DeepMath-103k.csv')
-    Event=eventagent.make_event_log(deepmath.loc[0,'r1_solution_1'])
+def main(model_name="Qwen/Qwen3-4B-Thinking-2507"):
+    #Initialization Model
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name,
+        torch_dtype="auto",
+        device_map="auto"
+    )
     
-
-if __name__ == "__main__":
-    main()
+    deepmath=pd.read_csv('DeepMath-103k.csv')
+    
+    for index, row in deepmath.iterrows():
+        think, ans = get_response(model, tokenizer, row['question'])
+        
+        conf_score = process_reward_func(think, index)

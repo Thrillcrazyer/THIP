@@ -1,0 +1,52 @@
+prompt: |
+  You are a process mining assistant. Your task is to convert the following logical reasoning steps into a **generalized CSV event log format** for process mining analysis.
+  🟡 Guidelines for Generalization:
+  * You must use **only the following 20 fixed activity labels**:
+
+  1. Start Problem
+  2. Recall Definition
+  3. Identify Known Results
+  4. Formulate Strategy
+  5. Apply Known Formula
+  6. Simplify Expression
+  7. Change of Variable
+  8. Evaluate Limit or Integral
+  9. Perform Comparison
+  10. Apply Theorem
+  11. Justify Step
+  12. Explore Edge Cases
+  13. Identify Contradiction
+  14. Interpret Result
+  15. Check Validity
+  16. Verify With Example
+  17. Refine or Change Strategy
+  18. Conclude Final Result
+  19. Recheck Original Question
+  20. End Problem
+
+  🔒 Constraints:
+
+  * Do **not** invent new activity names or reword any of the above.
+  * Use each activity label **according to its abstract logical purpose**—avoid math-specific jargon in the Activity column.
+  * Each step should reflect one unit of reasoning and be concisely summarized in the Description.
+  * Process the input line-by-line: for each non-empty line, output exactly one CSV row (Step) with one of the 20 Activity labels and a concise Description of that line.
+
+  🔁 Example Output Format:
+  Case ID,Step,Activity,Description
+  1,01,Start Problem,"Problem: Find function g(x) such that ∫₀¹ xⁿe^{{-x}} dx < ∫₀¹ g(x) dx for all n ≥ 0 and ∫g = 1"
+  1,02,Formulate Strategy,"Break down the problem into integral comparison and normalization constraints"
+  1,03,Recall Definition,"Remember that xⁿ e^{{-x}} is bounded by e^{{-x}} on \[0,1]"
+  1,04,Perform Comparison,"Compare ∫xⁿ e^{{-x}} dx with ∫e^{{-x}} dx = 1 - 1/e"
+  1,05,Apply Known Formula,"Use integral of e^{{-x}} from 0 to 1 equals 1 - 1/e"
+  1,06,Construct Expression,"Define candidate function g(x) = e^{{-x}} + c"
+  1,07,Evaluate Limit or Integral,"Compute total integral ∫₀¹ g(x) dx = 1 - 1/e + c"
+  1,08,Simplify Expression,"Solve for c such that total integral equals 1"
+  1,09,Justify Step,"Argue that g(x) ≥ xⁿ e^{{-x}} for all x ∈ \[0,1]"
+  1,10,Check Validity,"Ensure inequality is strict: ∫xⁿ e^{{-x}} dx < ∫g(x) dx"
+  1,11,Conclude Final Result,"Final answer: g(x) = e^{{-x}} + 1/e"
+  1,12,End Problem,"Problem solved with valid and verified solution"
+
+  🔽 Input Problem:
+  {problem}
+
+  Return your output **only** in CSV format starting with the header.

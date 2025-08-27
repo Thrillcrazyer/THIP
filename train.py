@@ -2,7 +2,6 @@ import os
 import math
 import random
 import string
-from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
 import torch
@@ -12,7 +11,10 @@ from torch.utils.data import DataLoader, Dataset
 import pandas as pd
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from reward import process_reward_func
+from reward import process_reward_func,answer_similarity_score
+from utils import sample_responses
+from config import DPOConfig
+
 
 # Optional Ray support for parallel reward evaluation
 try:
@@ -20,113 +22,12 @@ try:
 except Exception:
     ray = None  # fallback to sequential
 
+
 # Optional Weights & Biases support for live metrics
 try:
     import wandb  # type: ignore
 except Exception:
     wandb = None  # disable logging if not available
-
-
-# -----------------------------
-# Utility: answer normalization and similarity (0..1)
-# -----------------------------
-_PUNCT_TABLE = str.maketrans({p: " " for p in string.punctuation})
-
-
-def _normalize_text(s: str) -> str:
-    if s is None:
-        return ""
-    s = s.strip().lower()
-    s = s.translate(_PUNCT_TABLE)
-    s = " ".join(s.split())
-    return s
-
-
-def _token_f1(a: str, b: str) -> float:
-    a_tok = _normalize_text(a).split()
-    b_tok = _normalize_text(b).split()
-    if not a_tok and not b_tok:
-        return 1.0
-    if not a_tok or not b_tok:
-        return 0.0
-    from collections import Counter
-
-    ca, cb = Counter(a_tok), Counter(b_tok)
-    overlap = sum((ca & cb).values())
-    if overlap == 0:
-        return 0.0
-    precision = overlap / max(1, sum(ca.values()))
-    recall = overlap / max(1, sum(cb.values()))
-    if precision + recall == 0:
-        return 0.0
-    return 2 * precision * recall / (precision + recall)
-
-
-def _extract_numbers(s: str) -> List[float]:
-    import re
-
-    s = s or ""
-    nums = []
-    for m in re.finditer(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", s):
-        try:
-            nums.append(float(m.group(0)))
-        except Exception:
-            continue
-    return nums
-
-
-def answer_similarity_score(pred: str, gold: str) -> float:
-    # number-aware quick match
-    pnums, gnums = _extract_numbers(pred), _extract_numbers(gold)
-    if pnums and gnums:
-        for pn in pnums:
-            for gn in gnums:
-                if math.isfinite(pn) and math.isfinite(gn):
-                    if abs(pn - gn) <= 1e-6 * max(1.0, abs(gn)):
-                        return 1.0
-    # fallback to token F1
-    return _token_f1(pred, gold)
-
-
-# -----------------------------
-# Generation helper: sample multiple responses (think, answer)
-# -----------------------------
-@torch.no_grad()
-def sample_responses(
-    model: AutoModelForCausalLM,
-    tokenizer: AutoTokenizer,
-    prompt: str,
-    num_samples: int = 2,
-    max_new_tokens: int = 512,
-    temperature: float = 0.7,
-    top_p: float = 0.9,
-) -> List[Tuple[str, str]]:
-    messages = [{"role": "user", "content": prompt}]
-    text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-    device = next(model.parameters()).device
-    model_inputs = tokenizer([text], return_tensors="pt").to(device)
-
-    generated = model.generate(
-        **model_inputs,
-        do_sample=True,
-        temperature=temperature,
-        top_p=top_p,
-        num_return_sequences=num_samples,
-        max_new_tokens=max_new_tokens,
-    )
-
-    results: List[Tuple[str, str]] = []
-    for i in range(num_samples):
-        output_ids = generated[i][len(model_inputs.input_ids[0]) :].tolist()
-        # try to split at </think> like utils.get_response
-        try:
-            idx = len(output_ids) - output_ids[::-1].index(151668)  # </think>
-        except ValueError:
-            idx = 0
-        thinking = tokenizer.decode(output_ids[:idx], skip_special_tokens=True).strip("\n")
-        answer = tokenizer.decode(output_ids[idx:], skip_special_tokens=True).strip("\n")
-        results.append((thinking, answer))
-    return results
 
 
 # -----------------------------
@@ -328,29 +229,6 @@ def sequence_logprob_policy(
     return selected.sum()  # differentiable scalar
 
 
-# -----------------------------
-# DPO training loop
-# -----------------------------
-@dataclass
-class DPOConfig:
-    model_name: str = "Qwen/Qwen3-4B-Thinking-2507"
-    lr: float = 5e-6
-    epochs: int = 1
-    batch_size: int = 128
-    beta: float = 0.1
-    alpha: float = 0.5
-    num_candidates: int = 2
-    max_rows: int | None = 64
-    seed: int = 42
-    out_dir: str = "./dpo_out"
-    # batch size for ray parallel reward evaluation (defaults to batch_size if None)
-    ray_batch_size: int | None = None
-    # wandb logging
-    wandb_enabled: bool = True
-    wandb_project: str | None = "THIP"
-    wandb_run_name: str | None = None
-    wandb_mode: str | None = None  # e.g., "offline"
-
 
 def dpo_loss(
     policy_pos: torch.Tensor,
@@ -366,7 +244,10 @@ def dpo_loss(
 def train_dpo(cfg: DPOConfig):
     torch.manual_seed(cfg.seed)
     tokenizer = AutoTokenizer.from_pretrained(cfg.model_name)
-    policy = AutoModelForCausalLM.from_pretrained(cfg.model_name, torch_dtype="auto")
+    policy = AutoModelForCausalLM.from_pretrained(
+        cfg.model_name, 
+        #attn_implementation="flash_attention_2",
+        torch_dtype="auto")
     policy.train()
 
     ref = AutoModelForCausalLM.from_pretrained(cfg.model_name, torch_dtype="auto")
@@ -482,6 +363,18 @@ def train_dpo(cfg: DPOConfig):
                     avg_rejected_conf = _avg("rejected_conf")
                     avg_chosen_sim = _avg("chosen_sim")
                     avg_rejected_sim = _avg("rejected_sim")
+                    # average reward margin per batch: (chosen_score - rejected_score)
+                    avg_reward_margin = None
+                    try:
+                        cs = [float(x) for x in batch.get("chosen_score", [])]
+                        rs = [float(x) for x in batch.get("rejected_score", [])]
+                        if cs and rs:
+                            n = min(len(cs), len(rs))
+                            if n > 0:
+                                margins = [cs[i] - rs[i] for i in range(n)]
+                                avg_reward_margin = sum(margins) / n
+                    except Exception:
+                        avg_reward_margin = None
                 mem0 = mem1 = None
                 if torch.cuda.is_available():
                     try:
@@ -503,6 +396,8 @@ def train_dpo(cfg: DPOConfig):
                     log_data["pairs/avg_chosen_score"] = float(avg_chosen_score)
                 if avg_rejected_score is not None:
                     log_data["pairs/avg_rejected_score"] = float(avg_rejected_score)
+                if avg_reward_margin is not None:
+                    log_data["train/rewards/margins"] = float(avg_reward_margin)
                 if avg_chosen_conf is not None:
                     log_data["pairs/avg_chosen_conf"] = float(avg_chosen_conf)
                 if avg_rejected_conf is not None:
@@ -535,13 +430,13 @@ def train_dpo(cfg: DPOConfig):
 
 def main(
     model_name: str = "Qwen/Qwen3-4B-Thinking-2507",
-    epochs: int = 1,
+    epochs: int = 10,
     lr: float = 5e-6,
-    alpha: float = 0.5,
-    beta: float = 0.1,
+    alpha: float = 0.2, # Process Mining 오류가 얼마나 
+    beta: float = 1.0,
     num_candidates: int = 2,
     max_rows: int | None = 64,
-    batch_size: int = 1,
+    batch_size: int = 8,
     out_dir: str = "./dpo_out",
     ray_batch_size: int | None = None,
     wandb_enabled: bool = True,

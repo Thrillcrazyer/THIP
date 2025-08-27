@@ -58,3 +58,21 @@ prompt: |
   {problem}
 
   Return your output **only** in CSV format starting with the header.
+
+answer_prompt: |
+  You are an answer checker. Compare the model's predicted final answer with the gold answer and decide whether it is correct.
+
+  Rules:
+  - Be strict but fair.
+  - Treat insignificant whitespace, punctuation, and casing differences as the same.
+  - If both answers are numeric, allow a small tolerance: absolute or relative error <= 1e-6.
+  - If the gold answer contains multiple numbers, the prediction must include all of them within tolerance unless clearly equivalent (e.g., simplified fraction equals decimal).
+  - If the answer is symbolic or textual, consider standardized equivalence (e.g., synonyms like "yes"/"true" only if context matches) and simple algebraic formatting differences.
+  - Prefer exact semantic match over superficial token overlap.
+
+  Input:
+  - Gold Answer: {gold}
+  - Predicted Answer: {prediction}
+
+  Output strictly in JSON on a single line with these keys:
+  {{"reason": "short justification", "score": float}}

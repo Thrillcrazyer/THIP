@@ -1,1 +1,1 @@
-from .get_response import get_response
+from .get_response import get_response,sample_responses

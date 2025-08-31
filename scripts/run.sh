@@ -1,0 +1,26 @@
+accelerate launch \
+    --config_file deepspeed_zero3.yaml \
+    gspo.py \
+    --model_name_or_path deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B \
+    --output_dir DeepSeek-R1-Distill-Qwen-1.5B \
+    --logging_dir ./logs \
+    --save_total_limit 3\
+    --save_safetensors True\
+    --learning_rate 1e-5 \
+    --torch_dtype bfloat16 \
+    --max_prompt_length 512 \
+    --max_completion_length 8192 \
+    --use_peft \
+    --lora_target_modules "q_proj", "k_proj" \
+    --log_completions \
+    --save_strategy "steps" \
+    --save_steps 128 \
+    --per_device_train_batch_size 1 \
+    --num_generations 4 \
+    --importance_sampling_level sequence \
+    --epsilon 3e-4 \
+    --epsilon_high 4e-4 \
+    --beta 0.01 \
+    --loss_type grpo \
+    --gradient_accumulation_steps 8 \
+    --steps_per_generation 32

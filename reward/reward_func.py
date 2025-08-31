@@ -8,6 +8,9 @@ from openai import OpenAI
 import yaml
 import os
 from dotenv import load_dotenv
+from datasets import load_dataset
+from latex2sympy2_extended import NormalizationConfig
+from math_verify import LatexExtractionConfig, parse, verify
 ##################################
 from pm.miner import Miner
 from pm.checker import Checker
@@ -34,7 +37,7 @@ def process_reward_func(think:str, index:int)->float:
 
     conf_df = Checker(true_eventlog, reason_net).check()
 
-    return conf_df['F1 Score'].values[0]
+    return 0.5*conf_df['Fitness'].values[0]+0.2*conf_df['Precision'].values[0] +0.3*conf_df['F1 Score'].values[0]
 
 def answer_reward_func(ans:str, true:str,model_name="deepseek-chat")->float:
     load_dotenv()
@@ -106,3 +109,50 @@ def answer_similarity_score(pred: str, gold: str) -> float:
                         return 1.0
     # fallback to token F1
     return _token_f1(pred, gold)
+
+
+def accuracy_reward(content: str, solution: str, **kwargs):
+        """Reward function that checks if the completion matches the ground truth.
+        - If both gold and prediction are parseable → use math verification.
+        - If not parseable → compare as normalized text.
+        """
+        rewards = []
+        contents = [content]
+        solution = [solution]
+        for content, sol in zip(contents, solution):
+            try:
+                gold_parsed = parse(sol, extraction_mode="first_match")
+            except Exception:
+                gold_parsed = []
+
+            if len(gold_parsed) != 0:
+                # Try parsing predicted answer too
+                try:
+                    answer_parsed = parse(
+                        content,
+                        extraction_config=[
+                            LatexExtractionConfig(
+                                normalization_config=NormalizationConfig(
+                                    nits=False,
+                                    malformed_operators=False,
+                                    basic_latex=True,
+                                    boxed="all",
+                                    units=True,
+                                ),
+                                boxed_match_priority=0,
+                                try_extract_without_anchor=False,
+                            )
+                        ],
+                        extraction_mode="first_match",
+                    )
+                    reward = float(verify(gold_parsed, answer_parsed))
+                except Exception as e:
+                    print(f"verify failed: {e}, answer: {content}, gold: {sol}")
+                    reward = None
+            else:
+                # fallback to text match
+                reward = float(content.strip().lower() == sol.strip().lower())
+
+            rewards.append(reward)
+
+        return rewards

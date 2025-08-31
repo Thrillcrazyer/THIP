@@ -4,3 +4,4 @@ openai
 pyyaml
 dotenv
 wandb
+transformers

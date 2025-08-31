@@ -12,7 +12,7 @@ import pandas as pd
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from reward import process_reward_func,answer_similarity_score
-from utils import sample_responses
+from utils import sample_responses,get_dataset
 from config import DPOConfig
 
 
@@ -244,13 +244,30 @@ def dpo_loss(
 def train_dpo(cfg: DPOConfig):
     torch.manual_seed(cfg.seed)
     tokenizer = AutoTokenizer.from_pretrained(cfg.model_name)
+    # resolve dtype from config
+    def _resolve_dtype(x):
+        if isinstance(x, torch.dtype):
+            return x
+        if isinstance(x, str):
+            s = x.strip().lower()
+            if s == "auto":
+                return "auto"
+            if s in ("bf16", "bfloat16"):
+                return torch.bfloat16
+            if s in ("fp16", "float16", "half"):
+                return torch.float16
+            if s in ("fp32", "float32", "full", "float"):
+                return torch.float32
+        return "auto"
+
+    resolved_dtype = _resolve_dtype(getattr(cfg, "dtype", "auto"))
     policy = AutoModelForCausalLM.from_pretrained(
-        cfg.model_name, 
-        #attn_implementation="flash_attention_2",
-        torch_dtype="auto")
+        cfg.model_name,
+        attn_implementation="flash_attention_2",
+        torch_dtype=resolved_dtype)
     policy.train()
 
-    ref = AutoModelForCausalLM.from_pretrained(cfg.model_name, torch_dtype="auto")
+    ref = AutoModelForCausalLM.from_pretrained(cfg.model_name, torch_dtype=resolved_dtype)
     ref.eval()
     for p in ref.parameters():
         p.requires_grad_(False)
@@ -280,6 +297,12 @@ def train_dpo(cfg: DPOConfig):
             ref.to("cuda:0")
 
     deepmath = pd.read_csv("DeepMath-103k.csv")
+    deepmath = get_dataset(deepmath)
+    
+    optimizer = torch.optim.AdamW(policy.parameters(), lr=cfg.lr)
+
+    # 초기 preference pairs 생성
+    print("[init] Building initial preference pairs...")
     pairs = build_preference_pairs(
         model=policy,
         tokenizer=tokenizer,
@@ -291,23 +314,41 @@ def train_dpo(cfg: DPOConfig):
         ray_batch_size=cfg.ray_batch_size or cfg.batch_size,
     )
     if not pairs:
-        raise RuntimeError("No preference pairs could be constructed.")
+        raise RuntimeError("No initial preference pairs could be constructed.")
 
-    # optional: shutdown ray to free resources (pairs already materialized)
-    try:
-        if ray is not None and ray.is_initialized():
-            ray.shutdown()
-    except Exception:
-        pass
-
-    ds = PreferencePairsDataset(pairs)
-    dl = DataLoader(ds, batch_size=cfg.batch_size, shuffle=True)
-
-    optimizer = torch.optim.AdamW(policy.parameters(), lr=cfg.lr)
-
+    # pair 업데이트 주기 설정
+    pair_update_freq = getattr(cfg, 'pair_update_freq', 100)  # 100 step마다 업데이트
+    
     global_step = 0
     for epoch in range(cfg.epochs):
+        ds = PreferencePairsDataset(pairs)
+        dl = DataLoader(ds, batch_size=cfg.batch_size, shuffle=True)
+        
         for batch in dl:
+            # N step마다 preference pairs 재생성
+            if global_step > 0 and global_step % pair_update_freq == 0:
+                print(f"[step {global_step}] Updating preference pairs with current policy...")
+                new_pairs = build_preference_pairs(
+                    model=policy,
+                    tokenizer=tokenizer,
+                    df=deepmath,
+                    alpha=cfg.alpha,
+                    num_candidates=cfg.num_candidates,
+                    max_rows=cfg.max_rows,
+                    seed=cfg.seed + global_step,
+                    ray_batch_size=cfg.ray_batch_size or cfg.batch_size,
+                )
+                if new_pairs:
+                    pairs = new_pairs
+                    print(f"[step {global_step}] Updated {len(pairs)} preference pairs")
+                    # DataLoader 재생성 (다음 epoch에서 사용)
+                    
+                # optional: shutdown ray to free resources
+                try:
+                    if ray is not None and ray.is_initialized():
+                        ray.shutdown()
+                except Exception:
+                    pass
             prompts: List[str] = batch["prompt"] if isinstance(batch["prompt"], list) else [batch["prompt"]]
             chosens: List[str] = batch["chosen"] if isinstance(batch["chosen"], list) else [batch["chosen"]]
             rejects: List[str] = batch["rejected"] if isinstance(batch["rejected"], list) else [batch["rejected"]]
@@ -436,9 +477,10 @@ def main(
     beta: float = 1.0,
     num_candidates: int = 2,
     max_rows: int | None = 64,
-    batch_size: int = 8,
+    batch_size: int = 16,
     out_dir: str = "./dpo_out",
     ray_batch_size: int | None = None,
+    pair_update_freq: int = 1,  # 새로운 파라미터 추가
     wandb_enabled: bool = True,
     wandb_project: str | None = "THIP",
     wandb_run_name: str | None = None,
@@ -455,6 +497,7 @@ def main(
         batch_size=batch_size,
         out_dir=out_dir,
         ray_batch_size=ray_batch_size,
+        pair_update_freq=pair_update_freq,
         wandb_enabled=wandb_enabled,
         wandb_project=wandb_project,
         wandb_run_name=wandb_run_name,

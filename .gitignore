@@ -3,6 +3,7 @@
 log.txt
 dpo_out/
 wandb/
+Train_data/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

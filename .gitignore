@@ -4,6 +4,7 @@ log.txt
 dpo_out/
 wandb/
 Train_data/
+DeepSeek-R1-Distill-Qwen-1.5B/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

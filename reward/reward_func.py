@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from datasets import load_dataset
 from latex2sympy2_extended import NormalizationConfig
 from math_verify import LatexExtractionConfig, parse, verify
+import json
 ##################################
 from pm.miner import Miner
 from pm.checker import Checker
@@ -37,7 +38,7 @@ def process_reward_func(think:str, index:int)->float:
 
     conf_df = Checker(true_eventlog, reason_net).check()
 
-    return 0.5*conf_df['Fitness'].values[0]+0.2*conf_df['Precision'].values[0] +0.3*conf_df['F1 Score'].values[0]
+    return 0.5*conf_df['Fitness'].values[0] + 0.5*conf_df['F1 Score'].values[0]
 
 def answer_reward_func(ans:str, true:str,model_name="deepseek-chat")->float:
     load_dotenv()
@@ -52,7 +53,11 @@ def answer_reward_func(ans:str, true:str,model_name="deepseek-chat")->float:
         ]
     )
     
-    return response.choices[0].message.content
+    try:
+        data = json.loads(response.choices[0].message.content)
+        return float(data.get("score"))
+    except json.JSONDecodeError:
+        return -1.0
 
 _PUNCT_TABLE = str.maketrans({p: " " for p in string.punctuation})
 

@@ -1,9 +1,6 @@
 import os
 
 import torch
-from datasets import load_dataset
-from latex2sympy2_extended import NormalizationConfig
-from math_verify import LatexExtractionConfig, parse, verify
 import re
 from trl import (
     GRPOConfig,
@@ -15,14 +12,17 @@ from trl import (
     get_peft_config,
     get_quantization_config,
 )
-from trl.rewards import think_format_reward
-from transformers import AutoModelForCausalLM, AutoTokenizer
+
 import torch
 import pandas as pd
 from datasets import Dataset
-from reward import accuracy_reward, process_reward_func
+from reward import process_reward_func , answer_reward_func
+from utils.chat_template import CHAT_TEMPLATE, SYSTEM_PROMPT, PREFIX_PROMPT, SUFFIX_PROMPT
 import ray
 os.environ.setdefault("TRACKIO_SPACE_ID", "trl-trackio")
+from math_verify import LatexExtractionConfig, parse, verify
+from latex2sympy2_extended import NormalizationConfig
+
 
 if __name__ == "__main__":
     parser = TrlParser((ScriptArguments, GRPOConfig, ModelConfig))
@@ -56,14 +56,12 @@ if __name__ == "__main__":
     
     print("LOAD Complete")
 
-    SYSTEM_PROMPT = (
-            "A conversation between user and assistant."
-        )
+    sp = SYSTEM_PROMPT["simplerl"]
 
     def make_conversation(example):
             return {
                 "prompt": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "system", "content": sp},
                     {"role": "user", "content": example['question']},
                 ],
             }
@@ -108,7 +106,7 @@ if __name__ == "__main__":
             return think, answer
         else:
             # 태그가 없을 경우 전체를 answer로 반환
-            return text.strip(), ""
+            return text, "NO ANSWER"
 
     def accuracy_reward(completions, solution: list[str], **kwargs):
         """Reward function that checks if the completion matches the ground truth.
@@ -156,6 +154,33 @@ if __name__ == "__main__":
 
         return rewards
     
+    def accuracy_reward2(completions, solution: list[str], **kwargs):
+        contents = [completion[0]["content"] for completion in completions]
+        
+        @ray.remote
+        def _compute_accuracy_score(content: str, sol_text: str) -> float:
+            try:
+                # extract clean solution and index
+                sol, _ = split_solution_and_index(sol_text[0])
+                _, ans = split_think_and_answer(content)
+                accuracy_reward=float(answer_reward_func(sol, ans))
+                print("ACCURACY REWARD: ",accuracy_reward)
+                return accuracy_reward
+            except Exception as e:
+                print(f"Error processing content: {e}")
+                return 0.0
+        # Initialize Ray lazily if not already initialized
+        if not ray.is_initialized():
+            ray.init(ignore_reinit_error=True)
+
+        # Launch tasks in parallel and gather results
+        futures = [_compute_accuracy_score.remote(content, sol) for content, sol in zip(contents, solution)]
+        rewards = ray.get(futures)
+
+        return rewards
+                
+        
+    
     def format_reward(completions, solution: list[str], **kwargs):
         rewards = []
         contents = [completion[0]["content"] for completion in completions]
@@ -201,11 +226,12 @@ if __name__ == "__main__":
     ################
     training_args.report_to="wandb"
     training_args.use_liger_kernel=True
-    
+    training_args.attn_implementation="flash_attention_2"
+
     trainer = GRPOTrainer(
         model=model_args.model_name_or_path,
         args=training_args,
-        reward_funcs=[format_reward, accuracy_reward, process_reward],
+        reward_funcs=[format_reward, accuracy_reward], #process_reward, accuracy_reward2
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         peft_config=get_peft_config(model_args),

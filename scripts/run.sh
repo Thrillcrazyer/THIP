@@ -10,10 +10,12 @@ accelerate launch \
     --torch_dtype bfloat16 \
     --max_prompt_length 512 \
     --max_completion_length 8192 \
+    --use_vllm True \
+    --vllm_mode colocate \
     --use_peft \
     --lora_target_modules "q_proj", "k_proj" \
     --log_completions \
-    --save_strategy "steps" \
+    --save_strategy steps \
     --save_steps 128 \
     --per_device_train_batch_size 1 \
     --num_generations 4 \

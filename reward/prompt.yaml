@@ -69,7 +69,8 @@ answer_prompt: |
   - If the gold answer contains multiple numbers, the prediction must include all of them within tolerance unless clearly equivalent (e.g., simplified fraction equals decimal).
   - If the answer is symbolic or textual, consider standardized equivalence (e.g., synonyms like "yes"/"true" only if context matches) and simple algebraic formatting differences.
   - Prefer exact semantic match over superficial token overlap.
-
+  - The score must always be a float between 0 and 1, where 0 means completely incorrect and 1 means completely correct. Even if the final answer is incorrect, partial credit should be given for valid reasoning steps in the solution process.
+  - If Predicted Answer is empty or "N/A" or "NO ANSWER", the score must be 0.
   Input:
   - Gold Answer: {gold}
   - Predicted Answer: {prediction}

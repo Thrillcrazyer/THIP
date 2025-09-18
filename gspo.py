@@ -227,11 +227,12 @@ if __name__ == "__main__":
     training_args.report_to="wandb"
     training_args.use_liger_kernel=True
     training_args.attn_implementation="flash_attention_2"
+    
 
     trainer = GRPOTrainer(
         model=model_args.model_name_or_path,
         args=training_args,
-        reward_funcs=[format_reward, accuracy_reward], #process_reward, accuracy_reward2
+        reward_funcs=[format_reward, accuracy_reward, process_reward], #process_reward, accuracy_reward2
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         peft_config=get_peft_config(model_args),

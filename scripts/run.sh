@@ -2,10 +2,10 @@ accelerate launch \
     --config_file deepspeed_zero3.yaml \
     gspo.py \
     --model_name_or_path deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B \
-    --output_dir DeepSeek-R1-Distill-Qwen-1.5B \
+    --output_dir DeepSeek-R1-Distill-Qwen-1.5B_THIP \
     --logging_dir ./logs \
-    --save_total_limit 3\
-    --save_safetensors True\
+    --save_total_limit 3 \
+    --save_safetensors True \
     --learning_rate 1e-5 \
     --torch_dtype bfloat16 \
     --max_prompt_length 512 \

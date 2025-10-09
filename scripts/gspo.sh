@@ -1,6 +1,6 @@
 accelerate launch \
-    --config_file deepspeed_zero3.yaml \
     gspo.py \
+    --config_file deepspeed_zero3.yaml \
     --model_name_or_path deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B \
     --output_dir DeepSeek-R1-Distill-Qwen-1.5B_THIP \
     --logging_dir ./logs \

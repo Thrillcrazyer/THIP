@@ -1,8 +1,8 @@
 from .reward_func import (
-	process_reward_func,
-	answer_reward_func,
-	answer_similarity_score,
+	process_reward,
+	accuracy_reward_LLM,
 	accuracy_reward,
+ 	think_format_reward,
 )
 
 from .makeeventlog import Answer2EventAgent

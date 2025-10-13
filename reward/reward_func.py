@@ -12,13 +12,13 @@ from datasets import load_dataset
 from latex2sympy2_extended import NormalizationConfig
 from math_verify import LatexExtractionConfig, parse, verify
 import json
+import ray
+
 ##################################
 from pm.miner import Miner
 from pm.checker import Checker
 import reward
 import pm
-
-
 
 truelogs=pd.read_csv('eventlogs/DeepMath_eventlog.csv')
 
@@ -116,48 +116,137 @@ def answer_similarity_score(pred: str, gold: str) -> float:
     return _token_f1(pred, gold)
 
 
-def accuracy_reward(content: str, solution: str, **kwargs):
-        """Reward function that checks if the completion matches the ground truth.
-        - If both gold and prediction are parseable → use math verification.
-        - If not parseable → compare as normalized text.
-        """
-        rewards = []
-        contents = [content]
-        solution = [solution]
-        for content, sol in zip(contents, solution):
+
+def split_solution_and_index(text):
+    match = re.search(r'<index>(.*?)</index>', text)
+    if match:
+        index = match.group(1)
+        solution = re.sub(r'<index>.*?</index>', '', text).strip()
+    else:
+        index = None
+        solution = text.strip()
+    return solution, index
+
+def split_think_and_answer(text):
+    """
+    ^<think>(?!.*<think>)(.*?)</think>(.*)$ 정규식을 사용해
+    유일한 <think> 블록의 내용과 나머지 답변을 분리.
+    """
+    m = re.search(r'(.?)</think>(.)', text, re.DOTALL)
+    if m:
+        think = m.group(1).strip()   # 태그 내부 내용만
+        answer = m.group(2).strip()  # </think> 이후 전체
+        return think, answer
+    else:
+        return text, "WRONG ANSWER"
+
+def ensure_ray_initialized():
+    if not ray.is_initialized():
+        ray.init(ignore_reinit_error=True)
+
+
+def accuracy_reward(completions, solution: list[str], **kwargs):
+    """Reward function that checks if the completion matches the ground truth.
+    - If both gold and prediction are parseable → use math verification.
+    - If not parseable → compare as normalized text.
+    """
+    rewards = []
+    contents = [completion[0]["content"] for completion in completions]
+    for content, sol in zip(contents, solution):
+        sol, _ = split_solution_and_index(sol[0])
+        try:
+            gold_parsed = parse(sol, extraction_mode="first_match")
+        except Exception:
+            gold_parsed = []
+
+        if len(gold_parsed) != 0:
+            # Try parsing predicted answer too
             try:
-                gold_parsed = parse(sol, extraction_mode="first_match")
-            except Exception:
-                gold_parsed = []
+                answer_parsed = parse(
+                    content,
+                    extraction_config=[
+                        LatexExtractionConfig(
+                            normalization_config=NormalizationConfig(
+                                nits=False,
+                                malformed_operators=False,
+                                basic_latex=True,
+                                boxed="all",
+                                units=True,
+                            ),
+                            boxed_match_priority=0,
+                            try_extract_without_anchor=False,
+                        )
+                    ],
+                    extraction_mode="first_match",
+                )
+                reward = float(verify(gold_parsed, answer_parsed))
+            except Exception as e:
+                print(f"verify failed: {e}, answer: {content}, gold: {sol}")
+                reward = 0.0
+        else:
+            # fallback to text match
+            reward = float(content.strip().lower() == sol.strip().lower())
+        rewards.append(reward)
 
-            if len(gold_parsed) != 0:
-                # Try parsing predicted answer too
-                try:
-                    answer_parsed = parse(
-                        content,
-                        extraction_config=[
-                            LatexExtractionConfig(
-                                normalization_config=NormalizationConfig(
-                                    nits=False,
-                                    malformed_operators=False,
-                                    basic_latex=True,
-                                    boxed="all",
-                                    units=True,
-                                ),
-                                boxed_match_priority=0,
-                                try_extract_without_anchor=False,
-                            )
-                        ],
-                        extraction_mode="first_match",
-                    )
-                    reward = float(verify(gold_parsed, answer_parsed))
-                except Exception as e:
-                    print(f"verify failed: {e}, answer: {content}, gold: {sol}")
-                    reward = None
-            else:
-                # fallback to text match
-                reward = float(content.strip().lower() == sol.strip().lower())
+    return rewards
 
-            rewards.append(reward)
+def accuracy_reward_LLM(completions, solution: list[str], **kwargs):
+    contents = [completion[0]["content"] for completion in completions]
+    
+    @ray.remote
+    def _compute_accuracy_score(content: str, sol_text: str) -> float:
+        try:
+            # extract clean solution and index
+            sol, _ = split_solution_and_index(sol_text[0])
+            _, ans = split_think_and_answer(content)
+            accuracy_reward=float(answer_reward_func(sol, ans))
+            print("ACCURACY REWARD: ",accuracy_reward)
+            return accuracy_reward
+        except Exception as e:
+            print(f"Error processing content: {e}")
+            return 0.0
+    ensure_ray_initialized()
 
-        return rewards
+    # Launch tasks in parallel and gather results
+    futures = [_compute_accuracy_score.remote(content, sol) for content, sol in zip(contents, solution)]
+    rewards = ray.get(futures)
+
+    return rewards
+
+def think_format_reward(completions, solution: list[str], **kwargs):
+    rewards = []
+    contents = [completion[0]["content"] for completion in completions]
+    for content in contents:
+        if "</think>" in content:
+            rewards.append(1.0)
+        else:
+            rewards.append(0.0)
+    return rewards
+
+def process_reward(completions, solution: list[str], **kwargs):
+    # Ray-parallel version of the per-sample computation
+    contents = [completion[0]["content"] for completion in completions]
+
+    @ray.remote
+    def _compute_conf_score(content: str, sol_text: str) -> float:
+        try:
+            # extract clean solution and index
+            _, index = split_solution_and_index(sol_text[0])
+            think, _ = split_think_and_answer(content)
+            if index is None:
+                print("Missing index in solution metadata; skipping process reward.")
+                return 0.0
+            process_reward_value = float(process_reward_func(think, int(index)))
+            print("PROCESS REWARD: ", process_reward_value)
+            return process_reward_value
+        except Exception as e:
+            print(f"Error processing content: {e}")
+            return 0.0
+
+    ensure_ray_initialized()
+
+    # Launch tasks in parallel and gather results
+    futures = [_compute_conf_score.remote(content, sol) for content, sol in zip(contents, solution)]
+    rewards = ray.get(futures)
+    
+    return rewards

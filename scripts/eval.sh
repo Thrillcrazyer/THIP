@@ -50,6 +50,8 @@
 #     --top_p 0.95 \
 #     --n 16 > eval_results/eval_log_Org.txt
 
+TEST_NAME='zwhe99/MATH'
+
 VLLM_ALLOW_LONG_MAX_MODEL_LEN=1 VLLM_WORKER_MULTIPROC_METHOD=spawn python evaluate.py \
     --base_model ./Qwen-1.5B_SFT/checkpoint-6500 \
     --chat_template_name r1-distill-qwen \
@@ -57,8 +59,8 @@ VLLM_ALLOW_LONG_MAX_MODEL_LEN=1 VLLM_WORKER_MULTIPROC_METHOD=spawn python evalua
     --output_dir ./eval_results/SFT \
     --bf16 True \
     --tensor_parallel_size 2 \
-    --data_id math-ai/aime25 \
-    --max_model_len 32768 \
+    --data_id $TEST_NAME \
+    --max_model_len 16384 \
     --temperature 0.6 \
     --top_p 0.95 \
     --n 32 > log_SFT.txt
@@ -70,8 +72,8 @@ VLLM_ALLOW_LONG_MAX_MODEL_LEN=1 VLLM_WORKER_MULTIPROC_METHOD=spawn python evalua
     --output_dir ./eval_results/GSPO \
     --bf16 True \
     --tensor_parallel_size 2 \
-    --data_id math-ai/aime25 \
-    --max_model_len 32768 \
+    --data_id $TEST_NAME \
+    --max_model_len 16384 \
     --temperature 0.6 \
     --top_p 0.95 \
     --n 32 > log_GRPO.txt
@@ -83,8 +85,8 @@ VLLM_ALLOW_LONG_MAX_MODEL_LEN=1 VLLM_WORKER_MULTIPROC_METHOD=spawn python evalua
     --output_dir ./eval_results/PM \
     --bf16 True \
     --tensor_parallel_size 2 \
-    --data_id math-ai/aime25 \
-    --max_model_len 32768 \
+    --data_id $TEST_NAME \
+    --max_model_len 16384 \
     --temperature 0.6 \
     --top_p 0.95 \
     --n 32 > log_PM.txt

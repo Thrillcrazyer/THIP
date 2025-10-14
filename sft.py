@@ -26,6 +26,9 @@ import pandas as pd
 from datasets import load_dataset, Dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer, Mxfp4Config
 from utils.chat_template import SYSTEM_PROMPT, DEFAULT_PROMPT
+import os
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 
 from trl import (
     ModelConfig,
@@ -50,15 +53,12 @@ def main(script_args, training_args, model_args):
     # ------------------------
     # Load model & tokenizer
     # ------------------------
-    quantization_config = Mxfp4Config(dequantize=True)
-    
     model_kwargs = dict(
         revision=model_args.model_revision,
         trust_remote_code=model_args.trust_remote_code,
         attn_implementation=model_args.attn_implementation,
         torch_dtype=model_args.torch_dtype,
         use_cache=False if training_args.gradient_checkpointing else True,
-        quantization_config=quantization_config,
     )
 
     model = AutoModelForCausalLM.from_pretrained(
@@ -68,7 +68,6 @@ def main(script_args, training_args, model_args):
     tokenizer = AutoTokenizer.from_pretrained(
         model_args.model_name_or_path,
     )
-
     # --------------
     # Load dataset
     # --------------

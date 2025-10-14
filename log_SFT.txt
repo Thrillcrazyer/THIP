@@ -1,2 +1,0 @@
-INFO 10-14 02:50:05 [__init__.py:241] Automatically detected platform cuda.
-INFO 10-14 02:50:07 [utils.py:326] non-default args: {'model': './Qwen-1.5B_SFT/checkpoint-6500', 'dtype': 'bfloat16', 'seed': 42, 'max_model_len': 16384, 'tensor_parallel_size': 2, 'disable_log_stats': True}

@@ -5,3 +5,14 @@ pyyaml
 dotenv
 wandb
 transformers
+trl
+datasets
+accelerate
+deepspeed
+liger-kernel
+vllm
+flash-attn --no-build-isolation
+latex2sympy2_extended
+math_verify
+dotenv
+huggingface_hub[cli]

@@ -1,7 +1,0 @@
-INFO 10-14 02:50:13 [__init__.py:241] Automatically detected platform cuda.
-Detected LoRA adapter at ./Result/Qwen-1.5B_THIP_GSPO_NOPMREWARD/checkpoint-3328
-Loading base model from Qwen/Qwen2.5-1.5B-Instruct
-Loading and merging LoRA adapter...
-Saving merged model to ./Result/Qwen-1.5B_THIP_GSPO_NOPMREWARD/checkpoint-3328_merged
-[2025-10-14 02:50:18,616] [INFO] [real_accelerator.py:260:get_accelerator] Setting ds_accelerator to cuda (auto detect)
-[2025-10-14 02:50:18,882] [INFO] [logging.py:107:log_dist] [Rank -1] [TorchCheckpointEngine] Initialized with serialization = False

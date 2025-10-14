@@ -14,13 +14,12 @@ from trl import (
     get_peft_config,
 )
 
-from reward import process_reward, accuracy_reward#, think_format_reward
+from reward import process_reward, accuracy_reward
 from utils.chat_template import SYSTEM_PROMPT, DEFAULT_PROMPT
 
 os.environ.setdefault("TRACKIO_SPACE_ID", "trl-trackio")
-from math_verify import LatexExtractionConfig, parse, verify
-from latex2sympy2_extended import NormalizationConfig
 from trl.rewards import think_format_reward
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 def make_conversation(example, sp=SYSTEM_PROMPT["simplerl"]):
     return {

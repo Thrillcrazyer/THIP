@@ -18,8 +18,8 @@ mv DeepMath_eventlog.csv eventlogs/
 
 pip install -r requirements.txt
 
-wandb login $WANDB_API_KEY
-huggingface-cli login --token $HF_API_KEY
+wandb login --verify  $WANDB_API_KEY
+hf auth login --token $HF_TOKEN --add-to-git-credential
 
 echo "✅ Environment setup complete!"
 

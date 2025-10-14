@@ -154,6 +154,7 @@ def accuracy_reward(completions, solution: list[str], **kwargs):
     contents = [completion[0]["content"] for completion in completions]
     for content, sol in zip(contents, solution):
         sol, _ = split_solution_and_index(sol[0])
+        _,content=split_think_and_answer(content)
         try:
             gold_parsed = parse(sol, extraction_mode="first_match")
         except Exception:

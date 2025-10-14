@@ -25,7 +25,7 @@ from trl.rewards import think_format_reward
 def make_conversation(example, sp=SYSTEM_PROMPT["simplerl"]):
     return {
         "prompt": [
-            {"role": "system", "content": DEFAULT_PROMPT + sp},
+            {"role": "system", "content": DEFAULT_PROMPT},
             {"role": "user", "content": example['question']},
         ],
     }
@@ -73,9 +73,6 @@ if __name__ == "__main__":
     eval_dataset = prepare_split(eval_dataset, sp)
     print("MAPPING COMPLETE")
     
-    #breakpoint()
-
-
     # ################
     # # Training
     # ################
@@ -83,7 +80,7 @@ if __name__ == "__main__":
     trainer = GRPOTrainer(
         model=model_args.model_name_or_path,
         args=training_args,
-        reward_funcs=[think_format_reward, accuracy_reward], #process_reward],
+        reward_funcs=[think_format_reward, accuracy_reward],
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         peft_config=get_peft_config(model_args),

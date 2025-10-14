@@ -14,7 +14,7 @@ warmup_ratio: 0.03
 lr_scheduler_type: cosine_with_min_lr
 lr_scheduler_kwargs:
   min_lr_rate: 0.1
-output_dir: Qwen-1.5B_SFT
+output_dir: Result/Qwen-1.5B_SFT
 report_to:
 - wandb
 seed: 42

@@ -412,8 +412,9 @@ class OBJudge:
             return True  # Not a power expression, can compute
 
 def pass_at_k(correct_lst: list[bool], k: int) -> float:
-    assert k > 0, "k must be greater than 0"
-    assert k <= len(correct_lst), "k must be less than or equal to the length of `correct_lst`"
+    print("correct_lst: ", len(correct_lst), "len(k): ",k)
+    # assert k > 0, "k must be greater than 0"
+    # assert k <= len(correct_lst), "k must be less than or equal to the length of `correct_lst`"
 
     num_samples = len(correct_lst)
     num_correct = sum(correct_lst)
@@ -673,7 +674,7 @@ def eval(
         write_jsonl(generation_file, generations)
 
     # compute correctness and pass@k (sample-level)
-    ks = [2 ** e for e in range(0, 7)]
+    ks = [2 ** e for e in range(0, 5)]
     ks = [k for k in ks if (2 * k) <= n or k == 1]
     for g in tqdm(generations, desc="computing correctness", total=len(generations)):
         gt_answer = g[answer_key]

@@ -7,6 +7,12 @@ accelerate launch \
     --config configs/sft_full.yaml \
     --model_name_or_path Qwen/Qwen2.5-1.5B-Instruct \
     --packing true packing_strategy wrapped \
+    --output_dir Result/Qwen-1.5B_SFT \
     --run_name $WANDB_NAME \
     --use_liger_kernel True \
-    --attn_implementation= 'flash_attention_2'
+    --push_to_hub True \
+    --save_steps 500 \
+    --use_vllm True \
+    --vllm_mode colocate \
+    --per_device_train_batch_size 8 \
+    --attn_implementation=flash_attention_2

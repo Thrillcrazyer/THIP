@@ -7,8 +7,8 @@ export WANDB_NAME="Qwen-1.5B_PMREWARD-$(date +%Y%m%d-%H%M%S)"
 accelerate launch \
     --config_file configs/deepspeed_zero3.yaml \
     gspo_THIP.py \
-    --dataset_name DeepMath-103k \
-    --model_name_or_path Qwen/Qwen2.5-1.5B-Instruct \
+    --dataset_name DeepMath-103k\
+    --model_name_or_path Qwen/Qwen2.5-1.5B-Instruct\
     --output_dir Result/Qwen-1.5B_THIP \
     --logging_dir ./logs \
     --report_to wandb \
@@ -17,7 +17,7 @@ accelerate launch \
     --use_liger_kernel True \
     --save_total_limit 3 \
     --save_safetensors True \
-    --learning_rate 1e-6 \
+    --learning_rate 2e-6 \
     --torch_dtype bfloat16 \
     --max_prompt_length 512 \
     --max_completion_length 8192 \
@@ -26,8 +26,8 @@ accelerate launch \
     --log_completions True \
     --save_strategy steps \
     --max_steps 500 \
-    --save_steps 128 \
-    --per_device_train_batch_size 4 \
+    --save_steps 25 \
+    --per_device_train_batch_size 8 \
     --num_generations 8 \
     --importance_sampling_level sequence \
     --loss_type grpo \
@@ -48,7 +48,7 @@ accelerate launch \
     --use_liger_kernel True \
     --save_total_limit 3 \
     --save_safetensors True \
-    --learning_rate 1e-6 \
+    --learning_rate 2e-6 \
     --torch_dtype bfloat16 \
     --max_prompt_length 512 \
     --max_completion_length 8192 \
@@ -56,9 +56,9 @@ accelerate launch \
     --vllm_mode colocate \
     --log_completions True \
     --save_strategy steps \
-    --save_steps 128 \
+    --save_steps 25 \
     --max_steps 500 \
-    --per_device_train_batch_size 4 \
+    --per_device_train_batch_size 8 \
     --num_generations 8 \
     --importance_sampling_level sequence \
     --loss_type grpo \
@@ -71,7 +71,7 @@ accelerate launch \
     gspo_NOTHIP.py \
     --dataset_name DeepMath-103k \
     --model_name_or_path Qwen/Qwen2.5-1.5B-Instruct \
-    --output_dir Result/Qwen-1.5B_THIP_GRPO \
+    --output_dir Result/Qwen-1.5B_GRPO \
     --logging_dir ./logs \
     --report_to wandb \
     --run_name $WANDB_NAME \
@@ -79,7 +79,7 @@ accelerate launch \
     --use_liger_kernel True \
     --save_total_limit 3 \
     --save_safetensors True \
-    --learning_rate 1e-6 \
+    --learning_rate 2e-6 \
     --torch_dtype bfloat16 \
     --max_prompt_length 512 \
     --max_completion_length 8192 \
@@ -87,13 +87,12 @@ accelerate launch \
     --vllm_mode colocate \
     --log_completions True \
     --save_strategy steps \
-    --save_steps 128 \
+    --save_steps 25 \
     --max_steps 500 \
-    --per_device_train_batch_size 4 \
+    --per_device_train_batch_size 8 \
     --num_generations 8 \
-    --importance_sampling_level sequence \
     --loss_type grpo \
-
+    
 ## DRGRPO
 export WANDB_NAME="Qwen-1.5B_DRGRPO-$(date +%Y%m%d-%H%M%S)"
 
@@ -102,7 +101,7 @@ accelerate launch \
     gspo_NOTHIP.py \
     --dataset_name DeepMath-103k \
     --model_name_or_path Qwen/Qwen2.5-1.5B-Instruct \
-    --output_dir Result/Qwen-1.5B_THIP_GRPO \
+    --output_dir Result/Qwen-1.5B_DRGRPO \
     --logging_dir ./logs \
     --report_to wandb \
     --run_name $WANDB_NAME \
@@ -110,7 +109,7 @@ accelerate launch \
     --use_liger_kernel True \
     --save_total_limit 3 \
     --save_safetensors True \
-    --learning_rate 1e-6 \
+    --learning_rate 2e-6 \
     --torch_dtype bfloat16 \
     --max_prompt_length 512 \
     --max_completion_length 8192 \
@@ -118,9 +117,8 @@ accelerate launch \
     --vllm_mode colocate \
     --log_completions True \
     --save_strategy steps \
-    --save_steps 128 \
+    --save_steps 25 \
     --max_steps 500 \
-    --per_device_train_batch_size 4 \
+    --per_device_train_batch_size 8 \
     --num_generations 8 \
-    --importance_sampling_level sequence \
     --loss_type dr_grpo \

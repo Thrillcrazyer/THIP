@@ -24,5 +24,7 @@ class EventLog(object):
     def num_cases(self):
         return len(self.log['Case ID'].unique())
     
-    
+    @property
+    def case_lens(self):
+        return self.log.groupby('Case ID').size().tolist()
 

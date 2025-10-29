@@ -68,4 +68,4 @@ for TEST_NAME in "${TEST_NAMES[@]}"; do
     done
 done
 
-echo "🎯 All evaluations completed successfully!"
+echo "evaluations completed"

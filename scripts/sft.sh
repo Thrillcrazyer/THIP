@@ -5,7 +5,7 @@ accelerate launch \
     --config_file configs/deepspeed_zero3.yaml \
     sft.py \
     --config configs/sft_full.yaml \
-    --model_name_or_path Qwen/Qwen2.5-1.5B-Instruct \
+    --model_name_or_path deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B \
     --packing true packing_strategy wrapped \
     --output_dir Result/Qwen-1.5B_SFT \
     --run_name $WANDB_NAME \
@@ -14,5 +14,5 @@ accelerate launch \
     --save_steps 500 \
     --use_vllm True \
     --vllm_mode colocate \
-    --per_device_train_batch_size 8 \
+    --per_device_train_batch_size 16 \
     --attn_implementation=flash_attention_2

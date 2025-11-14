@@ -1,13 +1,43 @@
 prompt: |
-  You are an Expert Mathematical Problem Solver and Process Mining Assistant.
-  Your task is to solve the given problem and convert its logical reasoning steps into a **CSV Event Log**.
+  You are a process mining assistant. Your task is to convert the following logical reasoning steps into a **generalized CSV event log format** for process mining analysis.
+  🟡 Guidelines for Generalization:
+  * You must use **only the following 20 fixed activity labels**:
 
-  🔒 CONSTRAINT and Guidelines:
-  1. Every single line must be mapped to exactly one Activity.
-  2. Use each activity value according to its abstract logical purpose—avoid math-specific jargon in the Activity column.
-  3. Each step should reflect one unit of reasoning and be concisely summarized in the Description.
-  4. Process the input line-by-line: for each non-empty line, output exactly one CSV row (Step) with one activity value and a concise Description of that line.
-  5. The number of reasoning steps and activity values may vary depending on the problem.
+  1. Start Problem
+  2. Recall Definition
+  3. Identify Known Results
+  4. Formulate Strategy
+  5. Apply Known Formula
+  6. Simplify Expression
+  7. Change of Variable
+  8. Evaluate Limit or Integral
+  9. Perform Comparison
+  10. Apply Theorem
+  11. Justify Step
+  12. Explore Edge Cases
+  13. Identify Contradiction
+  14. Interpret Result
+  15. Check Validity
+  16. Verify With Example
+  17. Refine or Change Strategy
+  18. Conclude Final Result
+  19. Recheck Original Question
+  20. End Problem
+
+  🔒 ABSOLUTE CONSTRAINT:
+  NEVER create, modify, or invent any new activity names beyond the 20 listed above.
+
+  ALWAYS select exactly one of the above labels for the Activity column for every line.
+
+  DO NOT add, remove, or reword any of the labels.
+
+  Every single line must be mapped to exactly one of these 20 activities.
+
+  Use each activity label according to its abstract logical purpose—avoid math-specific jargon in the Activity column.
+
+  Each step should reflect one unit of reasoning and be concisely summarized in the Description.
+
+  Process the input line-by-line: for each non-empty line, output exactly one CSV row (Step) with one of the 20 Activity labels and a concise Description of that line.
 
   🔁 Example Output Format:
   Case ID,Step,Activity,Description

@@ -50,11 +50,15 @@ ASSISTANT_START = {
 }
 
 DEFAULT_PROMPT = (
-    "A conversation between user and assistant. The user asks a question, and the assistant solves it. "
-    "The assistant first thinks about the reasoning process in the mind and then provides the user with the answer, and put your final answer within \boxed{}."
-    "The reasoning process and answer are enclosed within <think></think> tags, i.e., <think>This is my reasoning.</think>\n"
-    "After </think>, clearly present the final answer. "
-    "Please reason step by step, and put your final answer within \\boxed{}."
+    "A conversation between a user and an assistant. The user asks a question, and the assistant solves it. "
+    "The assistant MUST first think through the solution inside <think>...</think>, and this block MUST contain "
+    "ONLY step-by-step reasoning with no final answer or filler text. "
+    "Immediately after </think>, on a new line, the assistant MUST present the final answer exactly once: "
+    "no duplicate answers, no alternatives, and no rephrasings. "
+    "The entire final result MUST be enclosed in a single \\boxed{ }, and there MUST be no additional text "
+    "outside that single \\boxed{ } in the final answer. "
+    "Format template: <think>Step-by-step reasoning goes here.</think> "
+    "Final answer here with the result in \\boxed{ }."
 )
 
 SYSTEM_PROMPT = {

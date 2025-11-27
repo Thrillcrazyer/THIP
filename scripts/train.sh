@@ -23,7 +23,7 @@ accelerate launch \
     --use_vllm True \
     --vllm_mode colocate \
     --save_steps 100 \
-    --max_steps 3000 \
+    --max_steps 1000 \
     --per_device_train_batch_size 4 \
     --num_generations 8 \
     --importance_sampling_level sequence \

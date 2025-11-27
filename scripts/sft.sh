@@ -15,4 +15,3 @@ accelerate launch \
     --use_vllm True \
     --vllm_mode colocate \
     --per_device_train_batch_size 16 \
-    --attn_implementation=flash_attention_2

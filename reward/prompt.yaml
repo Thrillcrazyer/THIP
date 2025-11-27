@@ -61,20 +61,44 @@ prompt: |
 
 
 answer_prompt: |
-  You are an answer checker. Compare the model's predicted final answer with the gold answer and decide whether it is correct.
+  You are an answer checker. Compare the model's predicted final answer with the gold answer and evaluate correctness on a continuous scale.
 
-  Rules:
-  - Be strict but fair.
-  - Treat insignificant whitespace, punctuation, and casing differences as the same.
-  - If both answers are numeric, allow a small tolerance: absolute or relative error <= 1e-6.
-  - If the gold answer contains multiple numbers, the prediction must include all of them within tolerance unless clearly equivalent (e.g., simplified fraction equals decimal).
-  - If the answer is symbolic or textual, consider standardized equivalence (e.g., synonyms like "yes"/"true" only if context matches) and simple algebraic formatting differences.
-  - Prefer exact semantic match over superficial token overlap.
-  - The score must always be a float between 0 and 1, where 0 means completely incorrect and 1 means completely correct. Even if the final answer is incorrect, partial credit should be given for valid reasoning steps in the solution process.
-  - If Predicted Answer is empty or "N/A" or "NO ANSWER", the score must be 0.
-  Input:
-  - Gold Answer: {gold}
-  - Predicted Answer: {prediction}
+  The score must be a float between 0 and 1.
 
-  Output strictly in JSON on a single line with these keys:
-  {{"reason": "short justification", "score": float}}
+  Formatting Rules (STRICT):
+  - The predicted final answer MUST place the entire answer inside EXACTLY ONE \\boxed{ }.
+  - If the prediction contains zero or more than one \\boxed{ }, score must be reduced.
+    - If no \\boxed{ } exists → score = 0.
+    - If multiple \\boxed{ } exist → score <= 0.5 depending on correctness.
+  - Content outside the single \boxed{ } must be ignored but may reduce the score.
+
+  1. Normalization
+     - Ignore whitespace, minor punctuation, and casing.
+     - Extract content inside the single \\boxed{ } for evaluation.
+     - Normalize mathematical expressions (simplify, reorder, canonicalize).
+
+  2. Strong Mathematical Equivalence (highest priority)
+     - If the predicted expression is mathematically equivalent to the gold answer → score = 1.
+     - Includes algebraic, fractional, trigonometric, and simplified-form equivalence.
+
+  3. Numeric comparison (weakened)
+     - Only used when both expressions reduce to numeric values.
+     - If absolute or relative error <= 1e-6 → score = 1.
+     - Otherwise apply a very weak penalty:
+         error = min(abs(pred-gold), abs(pred-gold)/max(|gold|,1e-12))
+         score = max(0, 1 - min(1, 0.05 * error))
+
+  4. Multiple-number answers
+     - Treat required numbers as a set.
+     - Compute per-number equivalence or numeric score.
+     - Final score = average component score.
+
+  5. Symbolic/Textual answers
+     - If semantically equivalent → score = 1.
+     - If partially correct → intermediate score.
+
+  6. Empty or invalid
+     - If prediction is empty, "N/A", or contains no usable boxed content → score = 0.
+
+  Output strictly in JSON on a single line:
+    {{"reason": "short justification", "score": float}}

@@ -1,6 +1,6 @@
 import os
 import re
-from chat_template import SYSTEM_PROMPT, DEFAULT_PROMPT
+from .chat_template import SYSTEM_PROMPT, DEFAULT_PROMPT
 from datasets import Dataset
 
 def make_conversation(example, sp=SYSTEM_PROMPT["simplerl"]):

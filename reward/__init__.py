@@ -1,6 +1,5 @@
 from .reward_func import (
 	process_reward,
-	accuracy_reward_LLM,
 	accuracy_reward,
  	think_format_reward,
 )

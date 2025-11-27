@@ -38,7 +38,7 @@ def process_reward_func(think:str, index:int)->float:
 
     conf_df = Checker(true_eventlog, reason_net).check()
 
-    return 0.5*conf_df['Fitness'].values[0] + 0.5*conf_df['F1 Score'].values[0]
+    return conf_df['F1 Score'].values[0]
 
 def answer_reward_func(ans:str, true:str,model_name="deepseek-chat")->float:
     load_dotenv()
@@ -145,7 +145,7 @@ def ensure_ray_initialized():
         ray.init(ignore_reinit_error=True)
 
 
-def accuracy_reward(completions, solution: list[str], **kwargs):
+def accuracy_reward_old(completions, solution: list[str], **kwargs):
     """Reward function that checks if the completion matches the ground truth.
     - If both gold and prediction are parseable → use math verification.
     - If not parseable → compare as normalized text.
@@ -191,7 +191,7 @@ def accuracy_reward(completions, solution: list[str], **kwargs):
 
     return rewards
 
-def accuracy_reward_LLM(completions, solution: list[str], **kwargs):
+def accuracy_reward(completions, solution: list[str], **kwargs):
     contents = [completion[0]["content"] for completion in completions]
     
     @ray.remote

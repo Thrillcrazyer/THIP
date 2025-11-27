@@ -1,7 +1,7 @@
 export WANDB_PROJECT=THIP_DISTILL
 
 ## With PM Reward
-export WANDB_NAME="Qwen-1.5B_Thip"
+export WANDB_NAME="Qwen-1.5B_NoThip"
 
 accelerate launch \
     --config_file configs/deepspeed_zero3.yaml \
@@ -19,7 +19,7 @@ accelerate launch \
     --learning_rate 1e-6 \
     --torch_dtype bfloat16 \
     --max_prompt_length 1024 \
-    --max_completion_length 16384 \
+    --max_completion_length 8192 \
     --use_vllm True \
     --vllm_mode colocate \
     --log_completions True \

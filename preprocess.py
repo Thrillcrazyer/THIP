@@ -15,7 +15,7 @@ def main():
     Trace Extraction to Proplem Solving
     """
     eventagent=reward.Answer2EventAgent()
-    deepmath=pd.read_csv('DeepMath-103k.csv')
+    deepmath=pd.read_csv('DeepMath-103k_id.csv')
     
     # ensure output directory exists
     os.makedirs(EVENTLOG_DIR, exist_ok=True)
@@ -54,6 +54,8 @@ def main():
         ray.init(ignore_reinit_error=True, include_dashboard=False)
         futures = []
         for i, logdata in deepmath.iterrows():
+            if i == 60001:
+                break
             case_id = str(i)
             if case_id in processed_cases:
                 print(f"[skip] case {case_id}: already processed")
@@ -128,6 +130,28 @@ def main():
                 print(f"[append] case {i}: +{len(df)} rows -> {out_file}")
             except Exception as e:
                 print(f"[error] case {i}: failed to write -> {e}")
+
+    # Check for missing cases from 0 to 60000
+    print("\n[check] Verifying cases 0 to 60000...")
+    if os.path.exists(out_file):
+        try:
+            final_df = pd.read_csv(out_file, usecols=['Case ID'])
+            existing_cases = set(pd.to_numeric(final_df['Case ID'], errors='coerce').dropna().astype(int).unique())
+            
+            missing_cases = [c for c in range(60001) if c not in existing_cases]
+            
+            if missing_cases:
+                print(f"[warn] Found {len(missing_cases)} missing cases between 0 and 60000:")
+                if len(missing_cases) > 20:
+                    print(f"Examples: {missing_cases[:20]} ...")
+                else:
+                    print(f"Missing: {missing_cases}")
+            else:
+                print("[success] All cases from 0 to 60000 are present.")
+        except Exception as e:
+            print(f"[error] Failed to verify cases: {e}")
+    else:
+        print(f"[error] Output file {out_file} not found.")
 
 if __name__ == "__main__":
     main()

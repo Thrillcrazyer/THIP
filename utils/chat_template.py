@@ -51,8 +51,8 @@ ASSISTANT_START = {
 
 DEFAULT_PROMPT = (
     "A conversation between user and assistant. The user asks a question, and the assistant solves it. "
-    "The assistant first thinks about the reasoning process in the mind and then provides the user with the answer. "
-    "The reasoning process and answer are enclosed within <think></think> tags, i.e., <think>\nThis is my reasoning.\n</think>\n"
+    "The assistant first thinks about the reasoning process in the mind and then provides the user with the answer, and put your final answer within \boxed{}."
+    "The reasoning process and answer are enclosed within <think></think> tags, i.e., <think>This is my reasoning.</think>\n"
     "After </think>, clearly present the final answer. "
     "Please reason step by step, and put your final answer within \\boxed{}."
 )

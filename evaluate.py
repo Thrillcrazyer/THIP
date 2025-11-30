@@ -49,6 +49,11 @@ DATASET_INFO = {
         "problem_key": "problem",
         "answer_key": "answer",
     },
+    "math-ai/aime24": {
+        "default_split": "test",
+        "problem_key": "problem",
+        "answer_key": "solution",
+    },
     "zwhe99/simplerl-OlympiadBench": {
         "default_split": "test",
         "problem_key": "question",

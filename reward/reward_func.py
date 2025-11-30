@@ -128,14 +128,12 @@ def split_solution_and_index(text):
     return solution, index
 
 def split_think_and_answer(text):
-    """
-    ^<think>(?!.*<think>)(.*?)</think>(.*)$ 정규식을 사용해
-    유일한 <think> 블록의 내용과 나머지 답변을 분리.
-    """
-    m = re.search(r'(.?)</think>(.)', text, re.DOTALL)
+    m = re.search(r'<think>(?!.*<think>)(.*?)</think>(.*)',
+                  text,
+                  re.DOTALL)
     if m:
-        think = m.group(1).strip()   # 태그 내부 내용만
-        answer = m.group(2).strip()  # </think> 이후 전체
+        think = m.group(1).strip()
+        answer = m.group(2).strip()
         return think, answer
     else:
         return text, "WRONG ANSWER"
@@ -193,13 +191,14 @@ def accuracy_reward_old(completions, solution: list[str], **kwargs):
 
 def accuracy_reward(completions, solution: list[str], **kwargs):
     contents = [completion[0]["content"] for completion in completions]
-    
+
     @ray.remote
     def _compute_accuracy_score(content: str, sol_text: str) -> float:
         try:
             # extract clean solution and index
             sol, _ = split_solution_and_index(sol_text[0])
             _, ans = split_think_and_answer(content)
+            print("-"*30,'\n',"SOL: ", sol,'\n', "ANS: ", ans,'\n',"-"*30,'\n', )
             accuracy_reward=float(answer_reward_func(sol, ans))
             print("ACCURACY REWARD: ",accuracy_reward)
             return accuracy_reward

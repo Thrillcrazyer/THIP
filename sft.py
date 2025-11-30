@@ -27,7 +27,6 @@ from datasets import load_dataset, Dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer, Mxfp4Config
 from utils.chat_template import SYSTEM_PROMPT, DEFAULT_PROMPT
 import os
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 
 from trl import (

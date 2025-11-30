@@ -40,6 +40,7 @@ if __name__ == "__main__":
     train_dataset = prepare_split(train_dataset, sp)
     eval_dataset = prepare_split(eval_dataset, sp)
     print("MAPPING COMPLETE")
+
     
     trainer = GRPOTrainer(
         model=model_args.model_name_or_path,
@@ -48,8 +49,11 @@ if __name__ == "__main__":
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
     )
-
-    trainer.train()
+    try:
+        trainer.train(resume_from_checkpoint=True)
+    except Exception as e:
+        print(f"[WARN] Failed to resume checkpoint: {e}")
+        trainer.train()
     # Save and push to hub
     trainer.save_model(training_args.output_dir)
     

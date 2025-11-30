@@ -15,3 +15,10 @@ latex2sympy2_extended
 math_verify
 dotenv
 huggingface_hub[cli]
+fire
+peft
+pebble
+word2number
+langdetect
+flashinfer-python==0.2.2
+antlr4-python3-runtime==4.11.0

@@ -16,7 +16,8 @@ MODELS=(
     # ["GSPO"]="./Result/QWEN7_GSPO/checkpoint-1000"
     # ["GRPO"]="./Result/QWEN7_GRPO/checkpoint-1000"
     # ["DRGRPO"]="./Result/QWEN7_DRGRPO/checkpoint-1000"
-    ["SFT"]="./Result/Qwen-7B_SFT/checkpoint-500"
+    #["SFT"]="./Result/Qwen-7B_SFT/checkpoint-500"
+    ["ORG"]="Qwen/Qwen2.5-Math-7B"
 )
 
 # 공통 설정
@@ -24,7 +25,7 @@ COMMON_ARGS="
     --chat_template_name r1-distill-qwen
     --system_prompt_name simplerl
     --bf16 True
-    --tensor_parallel_size 4
+    --tensor_parallel_size 1
     --max_model_len 8192
     --temperature 1.0
     --top_p 0.95

@@ -1,7 +1,11 @@
 import os
 import re
-from .chat_template import SYSTEM_PROMPT, DEFAULT_PROMPT
 from datasets import Dataset
+
+try:
+    from .chat_template import SYSTEM_PROMPT, DEFAULT_PROMPT
+except ImportError:  # Fallback when utils is on sys.path root
+    from utils.chat_template import SYSTEM_PROMPT, DEFAULT_PROMPT
 
 def make_conversation(example, sp=SYSTEM_PROMPT["simplerl"]):
     return {

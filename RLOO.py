@@ -10,8 +10,7 @@ from trl import (
     TrlParser,
 )
 from trl.rewards import accuracy_rewards
-
-from reward import process_reward, accuracy_reward_old# , accuracy_reward , think_format_reward
+from reward import process_reward, accuracy_reward_old,think_format_reward# , accuracy_reward , think_format_reward
 from utils.chat_template import SYSTEM_PROMPT
 from utils.utils import prepare_split
 import weave

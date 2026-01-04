@@ -6,7 +6,7 @@ accelerate launch \
     --config_file configs/deepspeed_zero3.yaml \
     RLOO.py \
     --dataset_name DeepMath-103k\
-    --model_name_or_path Qwen/Qwen2.5-1.5B-Instruct\
+    --model_name_or_path deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B\
     --output_dir Result/Qwen-1.5B_THIP_RLLO_0102 \
     --logging_dir ./logs \
     --report_to wandb \

@@ -6,11 +6,12 @@ from trl import (
     RLOOTrainer,
     RLOOConfig,
     ModelConfig,
+    ScriptArguments,
     TrlParser,
 )
-from trl.rewards import think_format_reward,accuracy_rewards
+from trl.rewards import accuracy_rewards
 
-from reward import process_reward, accuracy_reward #, think_format_reward
+from reward import process_reward, accuracy_reward_old# , accuracy_reward , think_format_reward
 from utils.chat_template import SYSTEM_PROMPT
 from utils.utils import prepare_split
 import weave
@@ -45,7 +46,7 @@ if __name__ == "__main__":
     trainer = RLOOTrainer(
     model=model_args.model_name_or_path,
     args=training_args,
-    reward_funcs=[think_format_reward, accuracy_reward,process_reward],
+    reward_funcs=[accuracy_reward_old, process_reward],
     train_dataset=train_dataset,
     eval_dataset=eval_dataset,
     )

@@ -10,7 +10,7 @@ except ImportError:  # Fallback when utils is on sys.path root
 def make_conversation(example, sp=SYSTEM_PROMPT["simplerl"]):
     return {
         "prompt": [
-            {"role": "system", "content": DEFAULT_PROMPT},
+            {"role": "system", "content": sp},
             {"role": "user", "content": example['question']},
         ],
     }

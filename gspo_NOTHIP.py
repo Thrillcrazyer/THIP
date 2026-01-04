@@ -12,7 +12,7 @@ from trl import (
 )
 
 from reward import accuracy_reward
-from utils.chat_template import SYSTEM_PROMPT
+from utils.chat_template import SYSTEM_PROMPT,DEFAULT_PROMPT
 from utils.utils import prepare_split
 
 os.environ.setdefault("TRACKIO_SPACE_ID", "trl-trackio")
@@ -35,7 +35,7 @@ if __name__ == "__main__":
     
     print("LOAD Complete")
 
-    sp = SYSTEM_PROMPT["simplerl"]
+    sp = DEFAULT_PROMPT
            
     print("MAPPING DATASET")
     train_dataset = prepare_split(train_dataset, sp)

@@ -38,7 +38,7 @@ def process_reward_func(think:str, index:int)->float:
 
     conf_df = Checker(true_eventlog, reason_net).check()
 
-    return conf_df['F1 Score'].values[0]
+    return 0.7*conf_df['F1 Score'].values[0] + 0.3*conf_df['Fitness'].values[0]
 
 def answer_reward_func(ans:str, true:str,model_name="deepseek-chat")->float:
     load_dotenv()
@@ -128,15 +128,18 @@ def split_solution_and_index(text):
     return solution, index
 
 def split_think_and_answer(text):
-    m = re.search(r'<think>(?!.*<think>)(.*?)</think>(.*)',
-                  text,
-                  re.DOTALL)
-    if m:
-        think = m.group(1).strip()
-        answer = m.group(2).strip()
+    parts = re.split(r'</think>', text, maxsplit=1, flags=re.DOTALL)
+
+    if len(parts) == 2:
+        think_part = parts[0]
+        answer = parts[1].strip()
+
+        # <think> 태그 제거
+        think = re.sub(r'^.*?<think>', '', think_part, flags=re.DOTALL).strip()
+
         return think, answer
     else:
-        return text, "WRONG ANSWER"
+        return text.strip(), "WRONG ANSWER"
 
 def ensure_ray_initialized():
     if not ray.is_initialized():
@@ -153,8 +156,9 @@ def accuracy_reward_old(completions, solution: list[str], **kwargs):
     for content, sol in zip(contents, solution):
         sol, _ = split_solution_and_index(sol[0])
         _,content=split_think_and_answer(content)
+
         try:
-            gold_parsed = parse(sol, extraction_mode="first_match")
+            gold_parsed = parse(sol)
         except Exception:
             gold_parsed = []
 
@@ -162,26 +166,25 @@ def accuracy_reward_old(completions, solution: list[str], **kwargs):
             # Try parsing predicted answer too
             try:
                 answer_parsed = parse(
-                    content,
-                    extraction_config=[
-                        LatexExtractionConfig(
-                            normalization_config=NormalizationConfig(
-                                nits=False,
-                                malformed_operators=False,
-                                basic_latex=True,
-                                boxed="all",
-                                units=True,
-                            ),
-                            boxed_match_priority=0,
-                            try_extract_without_anchor=False,
-                        )
-                    ],
-                    extraction_mode="first_match",
+                content,
+                extraction_config=[
+                    LatexExtractionConfig(
+                        normalization_config=NormalizationConfig(units=True),
+                        # Ensures that boxed is tried first
+                        boxed_match_priority=0,
+                        try_extract_without_anchor=False,
+                    )
+                ],
+                extraction_mode="first_match",
                 )
                 reward = float(verify(gold_parsed, answer_parsed))
             except Exception as e:
                 print(f"verify failed: {e}, answer: {content}, gold: {sol}")
                 reward = 0.0
+            print("-----------------------------------------")
+            print(f"정답: {gold_parsed}")
+            print(f"풀이(학습중): {answer_parsed}")
+            print("-----------------------------------------")
         else:
             # fallback to text match
             reward = float(content.strip().lower() == sol.strip().lower())

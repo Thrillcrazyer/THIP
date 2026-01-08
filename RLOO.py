@@ -9,9 +9,9 @@ from trl import (
     ScriptArguments,
     TrlParser,
 )
-from trl.rewards import accuracy_rewards
-from reward import process_reward, accuracy_reward_old,think_format_reward# , accuracy_reward , think_format_reward
-from utils.chat_template import SYSTEM_PROMPT
+from trl.rewards import think_format_reward
+from reward import process_reward, accuracy_reward_old
+from utils.chat_template import SYSTEM_PROMPT, DEFAULT_PROMPT
 from utils.utils import prepare_split
 import weave
 
@@ -35,7 +35,7 @@ if __name__ == "__main__":
     
     print("LOAD Complete")
 
-    sp = SYSTEM_PROMPT["simplerl"]
+    sp = DEFAULT_PROMPT
 
     print("MAPPING DATASET")
     train_dataset = prepare_split(train_dataset, sp)
@@ -45,7 +45,8 @@ if __name__ == "__main__":
     trainer = RLOOTrainer(
     model=model_args.model_name_or_path,
     args=training_args,
-    reward_funcs=[accuracy_reward_old, process_reward],
+    reward_funcs=[accuracy_reward_old, process_reward,think_format_reward],
+    #reward_funcs=[accuracy_reward_old, think_format_reward],
     train_dataset=train_dataset,
     eval_dataset=eval_dataset,
     )

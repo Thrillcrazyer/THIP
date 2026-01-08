@@ -10,15 +10,14 @@ from trl import (
     TrlParser,
     get_peft_config,
 )
-
-from reward import accuracy_reward
+from transformers import AutoConfig
+from reward import process_reward, accuracy_reward_old , think_format_reward
 from utils.chat_template import SYSTEM_PROMPT,DEFAULT_PROMPT
 from utils.utils import prepare_split
-
+import weave
 os.environ.setdefault("TRACKIO_SPACE_ID", "trl-trackio")
-from trl.rewards import think_format_reward
+#from trl.rewards import think_format_reward
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-
 
 if __name__ == "__main__":
     parser = TrlParser((ScriptArguments, GRPOConfig, ModelConfig))
@@ -36,23 +35,26 @@ if __name__ == "__main__":
     print("LOAD Complete")
 
     sp = DEFAULT_PROMPT
-           
+
     print("MAPPING DATASET")
     train_dataset = prepare_split(train_dataset, sp)
     eval_dataset = prepare_split(eval_dataset, sp)
     print("MAPPING COMPLETE")
+
     
     trainer = GRPOTrainer(
         model=model_args.model_name_or_path,
         args=training_args,
-        reward_funcs=[think_format_reward, accuracy_reward],
+        reward_funcs=[think_format_reward, accuracy_reward_old],
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
-        peft_config=get_peft_config(model_args),
     )
 
-    trainer.train()
-
+    try:
+        trainer.train(resume_from_checkpoint=True)
+    except Exception as e:
+        print(f"[WARN] Failed to resume checkpoint: {e}")
+        trainer.train()
     # Save and push to hub
     trainer.save_model(training_args.output_dir)
     

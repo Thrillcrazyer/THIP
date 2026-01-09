@@ -38,7 +38,7 @@ def process_reward_func(think:str, index:int)->float:
 
     conf_df = Checker(true_eventlog, reason_net).check()
 
-    return 0.7*conf_df['F1 Score'].values[0] + 0.3*conf_df['Fitness'].values[0]
+    return conf_df['F1 Score'].values[0]
 
 def answer_reward_func(ans:str, true:str,model_name="deepseek-chat")->float:
     load_dotenv()

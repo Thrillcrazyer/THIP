@@ -27,6 +27,32 @@ def load_template(yaml_file='./reward/prompt.yaml'):
         template_data = yaml.safe_load(file)
     return template_data['answer_prompt']
 
+def load_process_eval_template(yaml_file='./reward/prompt.yaml'):
+    with open(yaml_file, 'r', encoding='utf-8') as file:
+        template_data = yaml.safe_load(file)
+    return template_data['process_eval_prompt']
+
+def llm_process_reward_func(think: str, problem: str, model_name="deepseek-chat") -> float:
+    """LLM에게 thinking process의 품질을 직접 평가하게 한다."""
+    load_dotenv()
+    api_key = os.getenv("DEEPSEEK_KEY")
+    client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
+    template = load_process_eval_template()
+
+    response = client.chat.completions.create(
+        model=model_name,
+        messages=[
+            {"role": "user", "content": template.format(problem=problem, thinking=think)}
+        ]
+    )
+
+    try:
+        data = json.loads(response.choices[0].message.content)
+        score = float(data.get("score", 0.0))
+        return max(0.0, min(1.0, score))
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return 0.0
+
 def process_reward_func(think:str, index:int)->float:
     think_log = reward.Answer2EventAgent().make_event_log(think)
     think_log.log['Case ID'] = str(index)
@@ -252,4 +278,30 @@ def process_reward(completions, solution: list[str], **kwargs):
     futures = [_compute_conf_score.remote(content, sol) for content, sol in zip(contents, solution)]
     rewards = ray.get(futures)
     
+    return rewards
+
+def llm_process_reward(completions, solution: list[str], **kwargs):
+    """Process Mining 대신 LLM이 직접 thinking process를 평가하는 reward 함수."""
+    contents = [completion[0]["content"] for completion in completions]
+
+    @ray.remote
+    def _compute_llm_process_score(content: str, sol_text: str) -> float:
+        try:
+            sol, _ = split_solution_and_index(sol_text[0])
+            think, _ = split_think_and_answer(content)
+            if not think.strip():
+                print("Empty thinking process; score = 0.0")
+                return 0.0
+            score = float(llm_process_reward_func(think, sol))
+            print("LLM PROCESS REWARD: ", score)
+            return score
+        except Exception as e:
+            print(f"Error in llm_process_reward: {e}")
+            return 0.0
+
+    ensure_ray_initialized()
+
+    futures = [_compute_llm_process_score.remote(content, sol) for content, sol in zip(contents, solution)]
+    rewards = ray.get(futures)
+
     return rewards

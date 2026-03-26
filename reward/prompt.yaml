@@ -85,3 +85,32 @@ answer_prompt: |
   # Output Format
   Output strictly in JSON on a single line with these keys:
   {{"reason": "short justification", "score": float}}
+
+
+process_eval_prompt: |
+  You are an expert evaluator of mathematical reasoning processes.
+  Evaluate the quality of the following step-by-step thinking process for solving a math problem.
+
+  # Problem
+  {problem}
+
+  # Thinking Process
+  {thinking}
+
+  # Evaluation Criteria (score each 0-1, then average):
+  1. **Logical Coherence**: Are the reasoning steps logically connected? No unjustified leaps?
+  2. **Completeness**: Does the process cover all necessary steps to reach the answer?
+  3. **Strategy**: Is the chosen approach reasonable and efficient for this problem?
+  4. **Self-Correction**: Does the solver verify, re-check, or correct mistakes during reasoning?
+  5. **Clarity**: Are the steps clearly expressed and easy to follow?
+
+  # Rules:
+  - Score must be a float between 0.0 and 1.0.
+  - 0.0 = completely incoherent or no meaningful reasoning.
+  - 1.0 = flawless, well-structured, complete reasoning process.
+  - Be strict: most average solutions should score 0.4-0.7.
+  - If the thinking is empty or nonsensical, score 0.0.
+
+  # Output Format
+  Output strictly in JSON on a single line with these keys:
+  {{"reason": "short justification", "score": float}}

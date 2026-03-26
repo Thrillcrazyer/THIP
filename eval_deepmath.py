@@ -238,8 +238,9 @@ def main(
 
     # data
     csv_path: str = "DeepMath-103k_id.csv",
-    start_idx: int = None,
-    end_idx: int = None,
+    start_idx: int = 0,
+    end_idx: int = 5000,
+    max_questions: int = None,
 
     # output
     output_path: str = "eval_deepmath_results.csv",
@@ -260,6 +261,8 @@ def main(
     df = pd.read_csv(csv_path)
     if start_idx is not None and end_idx is not None:
         df = df.iloc[start_idx:end_idx].reset_index(drop=True)
+    if max_questions is not None:
+        df = df.head(max_questions).reset_index(drop=True)
     print(f"Loaded {len(df)} problems")
 
     # ── Phase 1: vLLM API 비동기 생성 (resume 지원) ──

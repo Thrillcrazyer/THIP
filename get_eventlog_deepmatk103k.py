@@ -7,12 +7,17 @@ import reward
 def process_row(row_data: dict) -> pd.DataFrame:
     """Ray remote function to process a single row"""
     agent = reward.Answer2EventAgent()
-    log = row_data['generated_reason']
-    event_df = agent.make_event_df(log)
-    if event_df is not False and event_df is not None:
-        event_df['CaseID'] = row_data['CaseID']
-        event_df['dataset'] = row_data['dataset'].split('/')[1]
-        return event_df
+    results = []
+    for sol_col in ['r1_solution_1']:
+        log = row_data.get(sol_col)
+        if not log or (isinstance(log, float) and pd.isna(log)):
+            continue
+        event_df = agent.make_event_df(log)
+        if event_df is not False and event_df is not None:
+            event_df['Case ID'] = f"{row_data['id']}"
+            results.append(event_df)
+    if results:
+        return pd.concat(results, ignore_index=True)
     return pd.DataFrame()
 
 
@@ -20,7 +25,7 @@ def main():
     # Initialize Ray
     ray.init(ignore_reinit_error=True)
     
-    df = pd.read_csv('generated.csv')
+    df = pd.read_csv('DeepMath-103k_id.csv')
     
     # Convert DataFrame rows to list of dicts for Ray
     rows = df.to_dict('records')
@@ -36,10 +41,9 @@ def main():
         result = ray.get(future)
         if not result.empty:
             event_logs = pd.concat([event_logs, result], ignore_index=True)
-        print(f"Processed {i+1}/{total}")
-        print(f"EVENT LOG: {rows[i]['dataset'].split('/')[1]}, CaseID: {rows[i]['CaseID']}")
+        print(f"Processed {i+1}/{total}, Case ID: {rows[i]['id']}")
     
-    event_logs.to_csv('DeepSeek_testset_eventlog.csv', index=False)
+    event_logs.to_csv('DeepMath-103k_eventlog.csv', index=False)
     
     # Shutdown Ray
     ray.shutdown()

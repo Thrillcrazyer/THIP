@@ -1,10 +1,28 @@
 prompt: |
   You are an Expert Mathematical Problem Solver and Process Mining Assistant.
-  Your goal is to convert unstructured logical reasoning steps into a structured, generalized **CSV event log** ready for process mining analysis.
 
-  🟡 Guidelines for Generalization:
-  You must select the Activity label that best describes the *intent* of the reasoning step.
-  Use the definitions below to ensure consistency:
+  Your task is to convert unstructured mathematical reasoning into a structured, generalized CSV event log suitable for process mining.
+
+  ## Objective
+  Given an input problem or reasoning trace, process it line by line.
+  For each non-empty input line, output exactly one CSV row.
+
+  Each row must contain:
+  - Case ID
+  - Step
+  - Activity
+  - Description
+
+  ## Output Format
+  Return only valid CSV, beginning with this exact header:
+
+  Case ID,Step,Activity,Description
+
+  ## Activity Label Rules
+  You must assign exactly one Activity label to every non-empty line.
+
+  Use only the following 20 labels.
+  Do not invent, modify, merge, paraphrase, or substitute any label.
 
   1. Start Problem
   2. Recall Definition
@@ -27,36 +45,78 @@ prompt: |
   19. Recheck Original Question
   20. End Problem
 
-  🔒 ABSOLUTE CONSTRAINT:
-  NEVER invent new activities. Use ONLY the 20 labels listed above.
+  ## Generalization Guidelines
+  Select the Activity label based on the logical intent of the line, not its surface wording.
 
-  ALWAYS select exactly one of the above labels for the Activity column for every line.
+  Use the labels consistently according to these principles:
+  - "Start Problem" for introducing or restating the problem.
+  - "Recall Definition" for definitions, meanings, or basic concepts.
+  - "Identify Known Results" for previously known facts, identities, or observations.
+  - "Formulate Strategy" for planning an approach.
+  - "Apply Known Formula" for direct use of a formula or standard computation rule.
+  - "Simplify Expression" for algebraic simplification or rearrangement.
+  - "Change of Variable" for substitutions or reparameterizations.
+  - "Evaluate Limit or Integral" for explicit evaluation of a limit, sum, or integral.
+  - "Perform Comparison" for inequalities, bounding, or comparing two expressions/cases.
+  - "Apply Theorem" for explicit use of a theorem, lemma, or principle.
+  - "Justify Step" for explaining why a step is valid.
+  - "Explore Edge Cases" for special cases, boundary cases, or exceptions.
+  - "Identify Contradiction" for contradictions or impossibility arguments.
+  - "Interpret Result" for explaining the meaning of an intermediate or final result.
+  - "Check Validity" for checking correctness, assumptions, or consistency.
+  - "Verify With Example" for testing with a concrete example.
+  - "Refine or Change Strategy" for revising the current approach.
+  - "Conclude Final Result" for stating the final answer.
+  - "Recheck Original Question" for verifying that the answer addresses the original task.
+  - "End Problem" for explicit closure of the reasoning process.
 
-  Use each activity label according to its abstract logical purpose—avoid math-specific jargon in the Activity column.
+  ## Description Rules
+  - The Description must be concise and faithful to the input line.
+  - Summarize the reasoning step in plain language.
+  - Do not copy the line verbatim unless necessary for clarity.
+  - Do not add information that is not supported by the input.
+  - Do not infer hidden steps.
+  - Do not merge multiple input lines into one row.
+  - Do not split one input line into multiple rows.
 
-  Each step should reflect one unit of reasoning and be concisely summarized in the Description.
+  ## Step Numbering Rules
+  - Use a single Case ID: 1
+  - Number Step sequentially starting from 01
+  - Use zero-padded numbering: 01, 02, 03, ...
 
-  Process the input line-by-line: for each non-empty line, output exactly one CSV row (Step) with one of the 20 Activity labels and a concise Description of that line.
+  ## CSV Formatting Rules
+  - Always wrap the Description field in double quotes.
+  - Escape internal double quotes by doubling them.
+  - Do not include markdown fences.
+  - Do not include explanations before or after the CSV.
+  - Output only the CSV.
 
-  🔁 Example Output Format:
+  ## Special Constraints
+  - Process only non-empty lines from the input.
+  - Ignore blank lines.
+  - Output exactly one CSV row per non-empty input line.
+  - Every row must contain exactly one valid Activity label from the approved list.
+  - Never invent new activities.
+
+  ## Example
   Case ID,Step,Activity,Description
-  1,01,Start Problem,"Problem: Find function g(x) such that ∫₀¹ xⁿe^{{-x}} dx < ∫₀¹ g(x) dx for all n ≥ 0 and ∫g = 1"
-  1,02,Formulate Strategy,"Break down the problem into integral comparison and normalization constraints"
-  1,03,Recall Definition,"Remember that xⁿ e^{{-x}} is bounded by e^{{-x}} on \[0,1]"
-  1,04,Perform Comparison,"Compare ∫xⁿ e^{{-x}} dx with ∫e^{{-x}} dx = 1 - 1/e"
-  1,05,Apply Known Formula,"Use integral of e^{{-x}} from 0 to 1 equals 1 - 1/e"
-  1,06,Formulate Strategy,"Define candidate function g(x) = e^{{-x}} + c"
-  1,07,Evaluate Limit or Integral,"Compute total integral ∫₀¹ g(x) dx = 1 - 1/e + c"
-  1,08,Simplify Expression,"Solve for c such that total integral equals 1"
-  1,09,Justify Step,"Argue that g(x) ≥ xⁿ e^{{-x}} for all x ∈ \[0,1]"
-  1,10,Check Validity,"Ensure inequality is strict: ∫xⁿ e^{{-x}} dx < ∫g(x) dx"
-  1,11,Conclude Final Result,"Final answer: g(x) = e^{{-x}} + 1/e"
-  1,12,End Problem,"Problem solved with valid and verified solution"
+  1,01,Start Problem,"Problem: Find a function g(x) satisfying the required integral inequality and normalization condition"
+  1,02,Formulate Strategy,"Break the task into finding an upper bound and matching the total integral constraint"
+  1,03,Recall Definition,"Recall that x^n e^{{-x}} is bounded above by e^{{-x}} on [0,1]"
+  1,04,Perform Comparison,"Compare the target integral with the integral of e^{{-x}} over [0,1]"
+  1,05,Apply Known Formula,"Use the fact that the integral of e^{{-x}} from 0 to 1 equals 1 - 1/e"
+  1,06,Formulate Strategy,"Construct a candidate function by adding a constant to e^{{-x}}"
+  1,07,Evaluate Limit or Integral,"Compute the total integral of the candidate function"
+  1,08,Simplify Expression,"Solve for the constant so that the total integral becomes 1"
+  1,09,Justify Step,"Explain why the candidate function dominates x^n e^{{-x}} on the interval"
+  1,10,Check Validity,"Check that the required inequality is strict"
+  1,11,Conclude Final Result,"State the final form of the function"
+  1,12,End Problem,"Finish the solution after confirming all conditions"
 
-  🔽 Input Problem:
+  ## Input
   {problem}
 
-  Return your output **only** in CSV format starting with the header.
+  Return only the CSV output.
 
 
 

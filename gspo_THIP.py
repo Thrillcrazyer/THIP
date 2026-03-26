@@ -11,7 +11,7 @@ from trl import (
     get_peft_config,
 )
 from transformers import AutoConfig
-from reward import process_reward, accuracy_reward_old , think_format_reward
+from reward import process_reward, accuracy_reward_old , think_format_reward, llm_process_reward
 from utils.chat_template import SYSTEM_PROMPT,DEFAULT_PROMPT
 from utils.utils import prepare_split
 import weave
@@ -45,7 +45,7 @@ if __name__ == "__main__":
     trainer = GRPOTrainer(
         model=model_args.model_name_or_path,
         args=training_args,
-        reward_funcs=[think_format_reward, accuracy_reward_old,process_reward],
+        reward_funcs=[think_format_reward, accuracy_reward_old,llm_process_reward],
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
     )

@@ -6,8 +6,8 @@ git config --global user.name "Taek-Hyun Park"
 git config --global user.email "pthpark1@gmail.com"
 
 
-git clone https://$GITHUB_TOKEN@github.com/Thrillcrazyer/R.i.P_ReasoningisProcess.git
-cd R.i.P_ReasoningisProcess
+git clone https://$GITHUB_TOKEN@github.com/Thrillcrazyer/THIP.git
+cd THIP
 
 pip install gdown
 gdown 1KMnlO-Y5f_xp_FGvrXiOzY0mcz6HckgK

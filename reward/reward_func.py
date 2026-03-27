@@ -20,7 +20,7 @@ from pm.checker import Checker
 import reward
 import pm
 
-truelogs=pd.read_csv('eventlogs/DeepMath_eventlog.csv')
+
 
 def load_template(yaml_file='./reward/prompt.yaml'):
     with open(yaml_file, 'r', encoding='utf-8') as file:
@@ -53,17 +53,21 @@ def llm_process_reward_func(think: str, problem: str, model_name="deepseek-chat"
     except (json.JSONDecodeError, TypeError, ValueError):
         return 0.0
 
-def process_reward_func(think:str, index:int)->float:
-    think_log = reward.Answer2EventAgent().make_event_log(think)
+def process_reward_func(think:str, gold_solution:str, index:int=0)->float:
+    agent = reward.Answer2EventAgent()
+
+    think_log = agent.make_event_log(think)
+    if think_log is None or think_log is False:
+        return 0.0
     think_log.log['Case ID'] = str(index)
     reason_net = Miner(think_log).discover()
-    
-    true_log_df = truelogs[truelogs['Case ID'] == index].copy()
-    true_log_df['Case ID'] = str(index)
-    true_eventlog = pm.EventLog(true_log_df)
 
-    conf_df = Checker(true_eventlog, reason_net).check()
+    true_log = agent.make_event_log(gold_solution)
+    if true_log is None or true_log is False:
+        return 0.0
+    true_log.log['Case ID'] = str(index)
 
+    conf_df = Checker(true_log, reason_net).check()
     return conf_df['F1 Score'].values[0]
 
 def answer_reward_func(ans:str, true:str,model_name="deepseek-chat")->float:
@@ -260,12 +264,13 @@ def process_reward(completions, solution: list[str], **kwargs):
     def _compute_conf_score(content: str, sol_text: str) -> float:
         try:
             # extract clean solution and index
-            _, index = split_solution_and_index(sol_text[0])
+            sol, index = split_solution_and_index(sol_text[0])
             think, _ = split_think_and_answer(content)
-            if index is None:
-                print("Missing index in solution metadata; skipping process reward.")
+            if not sol.strip():
+                print("Empty solution text; skipping process reward.")
                 return 0.0
-            process_reward_value = float(process_reward_func(think, int(index)))
+            idx = int(index) if index is not None else 0
+            process_reward_value = float(process_reward_func(think, sol, idx))
             print("PROCESS REWARD: ", process_reward_value)
             return process_reward_value
         except Exception as e:

@@ -71,26 +71,28 @@ def compute_accuracy(response: str, gold_answer: str) -> float:
         return float(answer.strip().lower() == gold_answer.strip().lower())
 
 
-def compute_process_reward(response: str, case_id: int, truelogs_df: pd.DataFrame) -> float:
-    """process_reward_func 방식: think → eventlog → petri net → conformance check"""
+def compute_process_reward(response: str, case_id: int, gold_solution: str) -> float:
+    """process_reward_func 방식: think → eventlog → petri net → conformance check
+    TrueLog를 CSV에서 읽지 않고 gold_solution으로부터 직접 생성"""
     think, _ = split_think_and_answer(response)
     if not think.strip():
         return 0.0
 
     try:
-        think_log = reward.Answer2EventAgent().make_event_log(think)
+        agent = reward.Answer2EventAgent()
+
+        think_log = agent.make_event_log(think)
         if think_log is None or think_log is False:
             return 0.0
         think_log.log['Case ID'] = str(case_id)
         reason_net = Miner(think_log).discover()
 
-        true_log_df = truelogs_df[truelogs_df['Case ID'] == case_id].copy()
-        if true_log_df.empty:
+        true_log = agent.make_event_log(gold_solution)
+        if true_log is None or true_log is False:
             return 0.0
-        true_log_df['Case ID'] = str(case_id)
-        true_eventlog = pm.EventLog(true_log_df)
+        true_log.log['Case ID'] = str(case_id)
 
-        conf_df = Checker(true_eventlog, reason_net).check()
+        conf_df = Checker(true_log, reason_net).check()
         return conf_df['F1 Score'].values[0]
     except Exception as e:
         print(f"  [ERROR] process_reward failed for id={case_id}: {e}")
@@ -104,14 +106,14 @@ def evaluate_single(
     gold: str,
     response: str,
     skip_process_reward: bool,
-    truelogs_df: pd.DataFrame,
+    gold_solution: str,
 ) -> dict:
     """Ray remote: 단일 샘플에 대해 accuracy + process_reward 계산"""
     acc = compute_accuracy(response, gold)
 
     proc_reward = 0.0
     if not skip_process_reward:
-        proc_reward = compute_process_reward(response, case_id, truelogs_df)
+        proc_reward = compute_process_reward(response, case_id, gold_solution)
 
     return {
         'id': case_id,
@@ -337,15 +339,21 @@ def main(
     print(f"Evaluating {len(to_eval)} samples with Ray...")
     ray.init(ignore_reinit_error=True, num_cpus=ray_num_cpus, num_gpus=0)
 
-    truelogs_df = pd.read_csv('eventlogs/DeepMath_eventlog.csv')
-    truelogs_ref = ray.put(truelogs_df)
+    # gold solution (r1_solution_1) 매핑: id -> solution text
+    sol_col = 'r1_solution_1'
+    if sol_col not in df.columns:
+        print(f"WARNING: '{sol_col}' column not found. Process reward will be 0.")
+        gold_solutions = {}
+    else:
+        gold_solutions = dict(zip(df['id'], df[sol_col].fillna('')))
 
     results = list(existing_results)
     futures = []
     for entry in to_eval:
+        gold_sol = gold_solutions.get(entry['id'], '')
         fut = evaluate_single.remote(
             entry['id'], entry['question'], entry['gold_answer'], entry['response'],
-            skip_process_reward, truelogs_ref,
+            skip_process_reward, gold_sol,
         )
         futures.append(fut)
 

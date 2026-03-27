@@ -39,7 +39,8 @@ for MODEL_KEY in "${!MODELS[@]}"; do
         --max-model-len "$MAX_TOKENS" \
         --gpu-memory-utilization 0.95 \
         --enable-prefix-caching \
-        --max-num-seqs 256 &
+        --max-num-seqs 256 \
+        --trust-remote-code &
     VLLM_PID=$!
 
     # 서버가 준비될 때까지 대기

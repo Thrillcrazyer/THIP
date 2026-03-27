@@ -9,9 +9,11 @@ import csv
 import pm
 
 class Answer2EventAgent():
-    def __init__(self,api_key=os.getenv("DEEPSEEK_KEY"),base_url="https://api.deepseek.com",model_name="deepseek-chat"):
+    def __init__(self,api_key=None,base_url=None,model_name=None):
         load_dotenv()
-        api_key=api_key
+        api_key = api_key or os.getenv("EVENTLOG_API_KEY", os.getenv("DEEPSEEK_KEY", "EMPTY"))
+        base_url = base_url or os.getenv("EVENTLOG_BASE_URL", "https://api.deepseek.com")
+        model_name = model_name or os.getenv("EVENTLOG_MODEL_NAME", "deepseek-chat")
         self.client = OpenAI(api_key=api_key,base_url=base_url)
         self.model_name=model_name
         self.template=self.load_template()

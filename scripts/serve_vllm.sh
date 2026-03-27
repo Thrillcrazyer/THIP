@@ -10,6 +10,17 @@
 MODEL=${1:-"deepseek-ai/DeepSeek-R1-Distill-Qwen-1B"}
 TP_SIZE=${2:-1}
 PORT=${3:-8000}
+GPUS=${4:-""}
+
+# 특정 GPU만 사용하도록 설정 (예: "0,1" or "2")
+if [ -n "$GPUS" ]; then
+    export CUDA_VISIBLE_DEVICES="$GPUS"
+fi
+
+# Answer2EventAgent가 vLLM 서버를 사용하도록 환경변수 설정
+export EVENTLOG_API_KEY="EMPTY"
+export EVENTLOG_BASE_URL="http://localhost:${PORT}/v1"
+export EVENTLOG_MODEL_NAME="$MODEL"
 
 # transformers 호환성 fix (vLLM 0.10.2 + transformers 최신 버전 충돌 방지)
 pip install 'transformers>=4.48,<4.52' -q
@@ -19,6 +30,10 @@ echo " vLLM Serving"
 echo " Model : $MODEL"
 echo " TP    : $TP_SIZE GPU(s)"
 echo " Port  : $PORT"
+echo " GPUs  : ${CUDA_VISIBLE_DEVICES:-all}"
+echo "============================================"
+echo " EVENTLOG_BASE_URL : $EVENTLOG_BASE_URL"
+echo " EVENTLOG_MODEL_NAME : $EVENTLOG_MODEL_NAME"
 echo "============================================"
 
 vllm serve "$MODEL" \

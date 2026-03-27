@@ -20,7 +20,51 @@ from pm.checker import Checker
 import reward
 import pm
 
-gold_solutions = pd.read_csv('deepmath_solutions_qwen14.csv')
+
+truelogs=pd.read_csv('eventlogs/DeepMath_eventlog.csv')
+#gold_solutions = pd.read_csv('deepmath_solutions_qwen14.csv')
+
+def process_reward_func(think:str, index:int)->float:
+    think_log = reward.Answer2EventAgent().make_event_log(think)
+    think_log.log['Case ID'] = str(index)
+    reason_net = Miner(think_log).discover()
+    
+    true_log_df = truelogs[truelogs['Case ID'] == index].copy()
+    true_log_df['Case ID'] = str(index)
+    true_eventlog = pm.EventLog(true_log_df)
+
+    conf_df = Checker(true_eventlog, reason_net).check()
+
+    return 0.7*conf_df['F1 Score'].values[0] + 0.3*conf_df['Fitness'].values[0]
+
+def process_reward(completions, solution: list[str], **kwargs):
+    # Ray-parallel version of the per-sample computation
+    contents = [completion[0]["content"] for completion in completions]
+
+    @ray.remote
+    def _compute_conf_score(content: str, sol_text: str) -> float:
+        try:
+            # extract clean solution and index
+            _, index = split_solution_and_index(sol_text[0])
+            think, _ = split_think_and_answer(content)
+            if index is None:
+                print("Missing index in solution metadata; skipping process reward.")
+                return 0.0
+            process_reward_value = float(process_reward_func(think, int(index)))
+            print("PROCESS REWARD: ", process_reward_value)
+            return process_reward_value
+        except Exception as e:
+            print(f"Error processing content: {e}")
+            return 0.0
+
+    ensure_ray_initialized()
+
+    # Launch tasks in parallel and gather results
+    futures = [_compute_conf_score.remote(content, sol) for content, sol in zip(contents, solution)]
+    rewards = ray.get(futures)
+    
+    return rewards
+
 
 def load_template(yaml_file='./reward/prompt.yaml'):
     with open(yaml_file, 'r', encoding='utf-8') as file:
@@ -53,10 +97,38 @@ def llm_process_reward_func(think: str, problem: str, model_name="deepseek-chat"
     except (json.JSONDecodeError, TypeError, ValueError):
         return 0.0
 
-def process_reward_func(think:str, index:int=0, base_url="https://api.deepseek.com", model_name="deepseek-chat")->float:
+def process_reward_old(completions, solution: list[str], **kwargs):
+    # Ray-parallel version of the per-sample computation
+    contents = [completion[0]["content"] for completion in completions]
+
+    @ray.remote
+    def _compute_conf_score(content: str, sol_text: str) -> float:
+        try:
+            # extract clean solution and index
+            _, index = split_solution_and_index(sol_text[0])
+            think, _ = split_think_and_answer(content)
+            if index is None:
+                print("Missing index in solution metadata; skipping process reward.")
+                return 0.0
+            process_reward_value = float(process_reward_func_old(think, int(index)))
+            print("PROCESS REWARD: ", process_reward_value)
+            return process_reward_value
+        except Exception as e:
+            print(f"Error processing content: {e}")
+            return 0.0
+
+    ensure_ray_initialized()
+
+    # Launch tasks in parallel and gather results
+    futures = [_compute_conf_score.remote(content, sol) for content, sol in zip(contents, solution)]
+    rewards = ray.get(futures)
+    
+    return rewards
+
+def process_reward_func_old(think:str, index:int=0, base_url="https://api.deepseek.com", model_name="deepseek-chat")->float:
     
     agent = reward.Answer2EventAgent(base_url=base_url, model_name=model_name)
-    gold_solution = gold_solutions.iloc[index]['r1_solution_1']
+    gold_solution = gold_solutions.iloc[index]['r1_solution']
     
     think_log = agent.make_event_log(think)
     
@@ -258,34 +330,6 @@ def think_format_reward(completions, solution: list[str], **kwargs):
             rewards.append(1.0)
         else:
             rewards.append(0.0)
-    return rewards
-
-def process_reward(completions, solution: list[str], **kwargs):
-    # Ray-parallel version of the per-sample computation
-    contents = [completion[0]["content"] for completion in completions]
-
-    @ray.remote
-    def _compute_conf_score(content: str, sol_text: str) -> float:
-        try:
-            # extract clean solution and index
-            _, index = split_solution_and_index(sol_text[0])
-            think, _ = split_think_and_answer(content)
-            if index is None:
-                print("Missing index in solution metadata; skipping process reward.")
-                return 0.0
-            process_reward_value = float(process_reward_func(think, int(index)))
-            print("PROCESS REWARD: ", process_reward_value)
-            return process_reward_value
-        except Exception as e:
-            print(f"Error processing content: {e}")
-            return 0.0
-
-    ensure_ray_initialized()
-
-    # Launch tasks in parallel and gather results
-    futures = [_compute_conf_score.remote(content, sol) for content, sol in zip(contents, solution)]
-    rewards = ray.get(futures)
-    
     return rewards
 
 

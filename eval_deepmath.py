@@ -21,6 +21,7 @@ import ray
 import pandas as pd
 from tqdm import tqdm
 from openai import AsyncOpenAI
+from datasets import load_dataset
 from latex2sympy2_extended import NormalizationConfig
 from math_verify import LatexExtractionConfig, parse, verify
 
@@ -199,10 +200,8 @@ def run_generation(
     async def _run():
         client = AsyncOpenAI(base_url=api_base, api_key=api_key)
         semaphore = asyncio.Semaphore(max_concurrent)
-
         total = len(need_gen_rows)
         processed = 0
-
         for batch_start in range(0, total, gen_batch_size):
             batch = need_gen_rows[batch_start:batch_start + gen_batch_size]
             results = await generate_batch_async(
@@ -230,14 +229,19 @@ def main(
     system_prompt: str = "Please reason step by step, and put your final answer within \\boxed{}.",
 
     # generation
-    max_tokens: int = 8192,
+    max_tokens: int = 16384,
     temperature: float = 0.6,
-    top_p: float = 0.95,
+    top_p: float = 0.9,
     max_concurrent: int = 32,
     gen_batch_size: int = 256,
 
-    # data
-    csv_path: str = "DeepMath-103k_id.csv",
+    # data (CSV or Hugging Face dataset)
+    csv_path: str = None,
+    dataset_name: str = None,
+    dataset_split: str = "train",
+    question_col: str = "question",
+    answer_col: str = "final_answer",
+    id_col: str = "id",
     start_idx: int = 0,
     end_idx: int = 5000,
     max_questions: int = None,
@@ -252,13 +256,36 @@ def main(
     ray_num_cpus: int = None,
 ):
     assert model is not None, "--model is required (e.g. the model name served by vLLM)"
+    assert csv_path is not None or dataset_name is not None, \
+        "Either --csv_path or --dataset_name must be provided"
 
     # generation cache 경로 자동 설정
     if generation_cache is None:
         generation_cache = output_path.replace('.csv', '_generations.jsonl')
 
     # ── Load data ──
-    df = pd.read_csv(csv_path)
+    if dataset_name is not None:
+        ds = load_dataset(dataset_name, split=dataset_split)
+        df = ds.to_pandas()
+        print(f"Loaded dataset '{dataset_name}' (split={dataset_split}), {len(df)} rows")
+    else:
+        df = pd.read_csv(csv_path)
+
+    # 컬럼명 통일: question, final_answer, id
+    col_map = {}
+    if question_col != "question":
+        col_map[question_col] = "question"
+    if answer_col != "final_answer":
+        col_map[answer_col] = "final_answer"
+    if id_col != "id":
+        col_map[id_col] = "id"
+    if col_map:
+        df = df.rename(columns=col_map)
+
+    # id 컬럼이 없으면 자동 생성
+    if "id" not in df.columns:
+        df["id"] = range(len(df))
+
     if start_idx is not None and end_idx is not None:
         df = df.iloc[start_idx:end_idx].reset_index(drop=True)
     if max_questions is not None:
@@ -308,7 +335,7 @@ def main(
         return
 
     print(f"Evaluating {len(to_eval)} samples with Ray...")
-    ray.init(ignore_reinit_error=True, num_cpus=ray_num_cpus)
+    ray.init(ignore_reinit_error=True, num_cpus=ray_num_cpus, num_gpus=0)
 
     truelogs_df = pd.read_csv('eventlogs/DeepMath_eventlog.csv')
     truelogs_ref = ray.put(truelogs_df)

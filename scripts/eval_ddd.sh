@@ -13,12 +13,12 @@ MODELS=(
 
 # ── 설정 ──
 PORT=8000
-TP_SIZE=${TP_SIZE:-1}
+TP_SIZE=2
 API_BASE="http://localhost:${PORT}/v1"
-DATASET_NAME="some/dataset"
+DATASET_NAME="nvidia/Nemotron-Math-v2"
 QUESTION_COL="problem"
 ANSWER_COL="expected_answer"
-OUTPUT_DIR="./results"
+OUTPUT_DIR="./results_test"
 MAX_TOKENS=16384
 TEMPERATURE=0.6
 TOP_P=0.9

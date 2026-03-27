@@ -20,7 +20,7 @@ from pm.checker import Checker
 import reward
 import pm
 
-
+gold_solutions = pd.read_csv('deepmath_solutions_qwen14.csv')
 
 def load_template(yaml_file='./reward/prompt.yaml'):
     with open(yaml_file, 'r', encoding='utf-8') as file:
@@ -53,11 +53,16 @@ def llm_process_reward_func(think: str, problem: str, model_name="deepseek-chat"
     except (json.JSONDecodeError, TypeError, ValueError):
         return 0.0
 
-def process_reward_func(think:str, gold_solution:str, index:int=0, base_url="https://api.deepseek.com", model_name="deepseek-chat")->float:
+def process_reward_func(think:str, index:int=0, base_url="https://api.deepseek.com", model_name="deepseek-chat")->float:
+    
     agent = reward.Answer2EventAgent(base_url=base_url, model_name=model_name)
+    gold_solution = gold_solutions.iloc[index]['r1_solution_1']
+    
     think_log = agent.make_event_log(think)
+    
     if think_log is None or think_log is False:
         return 0.0
+    
     think_log.log['Case ID'] = str(index)
     reason_net = Miner(think_log).discover()
 
@@ -263,13 +268,12 @@ def process_reward(completions, solution: list[str], **kwargs):
     def _compute_conf_score(content: str, sol_text: str) -> float:
         try:
             # extract clean solution and index
-            sol, index = split_solution_and_index(sol_text[0])
+            _, index = split_solution_and_index(sol_text[0])
             think, _ = split_think_and_answer(content)
-            if not sol.strip():
-                print("Empty solution text; skipping process reward.")
+            if index is None:
+                print("Missing index in solution metadata; skipping process reward.")
                 return 0.0
-            idx = int(index) if index is not None else 0
-            process_reward_value = float(process_reward_func(think, sol, idx))
+            process_reward_value = float(process_reward_func(think, int(index)))
             print("PROCESS REWARD: ", process_reward_value)
             return process_reward_value
         except Exception as e:
@@ -283,6 +287,7 @@ def process_reward(completions, solution: list[str], **kwargs):
     rewards = ray.get(futures)
     
     return rewards
+
 
 def llm_process_reward(completions, solution: list[str], **kwargs):
     """Process Mining 대신 LLM이 직접 thinking process를 평가하는 reward 함수."""

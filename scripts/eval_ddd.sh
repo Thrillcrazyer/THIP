@@ -4,11 +4,13 @@ set -e
 # ── 모델 목록 ──
 declare -A MODELS
 MODELS=(
+    ["EXAONE"]="LGAI-EXAONE/EXAONE-Deep-7.8B"
     ["Qwen-7B"]="deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
     ["PHI"]="microsoft/phi-4"
-    ["EXAONE"]="LGAI-EXAONE/EXAONE-Deep-7.8B"
     ["Qwen-14B"]="deepseek-ai/DeepSeek-R1-Distill-Qwen-14B"
-    ["Qwen-32B"]="Result/Qwen-7B_TAC_GRPO/checkpoint-240"
+    ["Qwen-32B"]="deepseek-ai/DeepSeek-R1-Distill-Qwen-32B"
+    ["TACReward7B"]="Thrillcrazyer/TACReward7B"
+    ["TACReward1.5B"]="Thrillcrazyer/TACReward1.5B"
 )
 
 # ── 설정 ──
@@ -22,6 +24,7 @@ OUTPUT_DIR="./results_test"
 MAX_TOKENS=16384
 TEMPERATURE=0.6
 TOP_P=0.9
+SPLIT="medium"
 
 # ── 모델별 순회: vLLM 서빙 → eval → 서버 종료 ──
 for MODEL_KEY in "${!MODELS[@]}"; do
@@ -79,6 +82,7 @@ for MODEL_KEY in "${!MODELS[@]}"; do
         --output_path "$RESULT_PATH" \
         --max_tokens "$MAX_TOKENS" \
         --temperature "$TEMPERATURE" \
+        --dataset_split "$SPLIT" \
         --top_p "$TOP_P" \
         --skip_process_reward True
 

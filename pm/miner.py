@@ -8,7 +8,7 @@ class Miner:
         self.check_log()
 
     def check_log(self):
-        assert self.log['Step'].dtype == 'datetime64[ns]', f'datetime expected, but got {self.log["Step"].dtype}'
+        assert str(self.log['Step'].dtype).startswith('datetime64'), f'datetime expected, but got {self.log["Step"].dtype}'
         assert 'Case ID' in self.log.columns, f'Case ID column not found in log'
         assert 'Activity' in self.log.columns, f'Activity column not found in log'
         assert 'Step' in self.log.columns, f'Step column not found in log'

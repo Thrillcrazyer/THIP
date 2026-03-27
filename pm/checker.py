@@ -43,7 +43,7 @@ class Checker:
         self.net = ReasonNet
 
     def check_log(self):
-        assert self.truelog['Step'].dtype == 'datetime64[ns]', f'datetime expected, but got {self.truelog["Step"].dtype}'
+        assert str(self.truelog['Step'].dtype).startswith('datetime64'), f'datetime expected, but got {self.truelog["Step"].dtype}'
         assert 'Case ID' in self.truelog.columns, f'Case ID column not found in log'
         assert 'Activity' in self.truelog.columns, f'Activity column not found in log'
         assert 'Step' in self.truelog.columns, f'Step column not found in log'

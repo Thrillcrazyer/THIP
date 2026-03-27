@@ -53,9 +53,8 @@ def llm_process_reward_func(think: str, problem: str, model_name="deepseek-chat"
     except (json.JSONDecodeError, TypeError, ValueError):
         return 0.0
 
-def process_reward_func(think:str, gold_solution:str, index:int=0)->float:
-    agent = reward.Answer2EventAgent()
-
+def process_reward_func(think:str, gold_solution:str, index:int=0, base_url="https://api.deepseek.com", model_name="deepseek-chat")->float:
+    agent = reward.Answer2EventAgent(base_url=base_url, model_name=model_name)
     think_log = agent.make_event_log(think)
     if think_log is None or think_log is False:
         return 0.0
@@ -70,10 +69,10 @@ def process_reward_func(think:str, gold_solution:str, index:int=0)->float:
     conf_df = Checker(true_log, reason_net).check()
     return conf_df['F1 Score'].values[0]
 
-def answer_reward_func(ans:str, true:str,model_name="deepseek-chat")->float:
+def answer_reward_func(ans:str, true:str,base_url="https://api.deepseek.com", model_name="deepseek-chat")->float:
     load_dotenv()
     api_key=os.getenv("DEEPSEEK_KEY")
-    client=OpenAI(api_key=api_key,base_url="https://api.deepseek.com")
+    client=OpenAI(api_key=api_key,base_url=base_url)
     template=load_template()
 
     response = client.chat.completions.create(

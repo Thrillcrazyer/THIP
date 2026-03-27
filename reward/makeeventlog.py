@@ -9,11 +9,11 @@ import csv
 import pm
 
 class Answer2EventAgent():
-    def __init__(self):
+    def __init__(self,api_key=os.getenv("DEEPSEEK_KEY"),base_url="https://api.deepseek.com",model_name="deepseek-chat"):
         load_dotenv()
-        api_key=os.getenv("DEEPSEEK_KEY")
-        self.client = OpenAI(api_key=api_key,base_url="https://api.deepseek.com")
-        self.model_name="deepseek-chat"
+        api_key=api_key
+        self.client = OpenAI(api_key=api_key,base_url=base_url)
+        self.model_name=model_name
         self.template=self.load_template()
         
     def load_template(self, yaml_file='./reward/prompt.yaml'):

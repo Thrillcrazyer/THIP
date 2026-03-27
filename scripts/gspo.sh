@@ -1,14 +1,14 @@
 export WANDB_PROJECT=TAC
 
 ## With PM Reward
-export WANDB_NAME="Qwen-7B_TAC_GSPO"
+export WANDB_NAME="Qwen-2.5-1.5B_TAC_GSPO"
 
 accelerate launch \
     --config_file configs/deepspeed_zero3.yaml \
     gspo_THIP.py \
     --dataset_name DeepMath-103k\
-    --model_name_or_path Qwen/Qwen2.5-7B-Instruct\
-    --output_dir Result/Qwen-7B_TAC_GSPO \
+    --model_name_or_path Qwen/Qwen2.5-1.5B-Instruct\
+    --output_dir Result/Qwen-2.5-1.5B_TAC_GSPO \
     --logging_dir ./logs \
     --report_to wandb \
     --run_name $WANDB_NAME \

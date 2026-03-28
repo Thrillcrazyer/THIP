@@ -21,6 +21,7 @@ from utils.openmathinst_utils import process_results
 from utils.polymath.judge import pm_judge
 from utils.data_utils import write_jsonl, write_json, read_jsonl
 from utils.chat_template import CHAT_TEMPLATE, SYSTEM_PROMPT, PREFIX_PROMPT, SUFFIX_PROMPT
+from utils.vineppo_judge import vineppo_judge
 
 DATASET_INFO = {
     "zwhe99/MATH": {
@@ -758,6 +759,7 @@ def eval(
                         response_extract_regex=r"The answer is: (.+)$",
                     ) or
                     verify(parse(f"\\boxed{{${gt_answer}}}$"), parse(resp))
+                    or vineppo_judge(resp, gt_answer)
                 ) for resp in g["response"]
             ]
 

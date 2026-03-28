@@ -14,7 +14,6 @@ accelerate launch \
     --report_to wandb \
     --run_name $WANDB_NAME \
     --push_to_hub True \
-    --save_safetensors True \
     --learning_rate 1e-6 \
     --max_completion_length 16384 \
     --log_completions True \

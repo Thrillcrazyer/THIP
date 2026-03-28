@@ -70,7 +70,19 @@ DATASET_INFO = {
         "problem_key": "question",
         "answer_key": "answer",
         "category_keys": ["level"]
-    }
+    },
+    "Quadyun/Korean_SAT_MATH": {
+        "default_split": "test",
+        "default_subset": "2025_calculus",
+        "problem_key": "question",
+        "answer_key": "answer",
+    },
+    "opencompass/LiveMathBench": {
+        "default_split": "test",
+        "default_subset": "v202505_all_en",
+        "problem_key": "question",
+        "answer_key": "answer",
+    },
 }
 
 class OBJudge:
